@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>研途 · 导师物语</title>
+<style>
+* { box-sizing:border-box; }
+body { margin:0; height:100vh; display:flex; background:#2a1a10; color:#fff; font:14px/1.5 system-ui,"PingFang SC","Microsoft YaHei",sans-serif; overflow:hidden; }
+main { flex:1; display:flex; flex-direction:column; min-width:0; }
+#hud { display:flex; gap:12px; align-items:center; padding:6px 12px; background:#6a3a1a; border-bottom:3px solid #3a1a08; color:#fde8b0; font-weight:700; font-size:13px; flex-wrap:wrap; }
+#hud .date { color:#fff; font-size:14px; margin-right:auto; }
+#hud button { border:0; border-radius:6px; padding:4px 9px; font-weight:700; cursor:pointer; color:#fff; font-size:13px; }
+#phbtn { background:#07c160; } #mailbtn { background:#3a7bd5; } #paperbtn { background:#c0504d; }
+#hud button.new { animation:blink .7s infinite alternate; }
+@keyframes blink { to { filter:brightness(1.5); } }
+#stage { flex:1; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#2a1a10; min-height:0; }
+canvas#game { image-rendering:pixelated; display:block; }
+#msg { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:#0009; z-index:9; }
+#msg[hidden] { display:none; }
+#msg h2 { margin:0 0 12px; font-size:34px; color:#ffe08a; text-shadow:3px 3px 0 #6a3a1a; }
+#msg p { margin:0; font-size:15px; white-space:pre-line; color:#fff; max-width:80%; }
+#help { padding:5px 12px; font-size:12px; color:#e8d0a0; background:#3a2210; }
+#help #goal { color:#ffe08a; font-weight:700; }
+#dlg { position:absolute; left:50%; transform:translateX(-50%); bottom:12px; width:min(880px,94%); min-height:140px; background:#fdf3dc;
+  border:4px solid #6a3a1a; box-shadow:inset 0 0 0 3px #e8c890, 0 6px 0 #0006; border-radius:8px; color:#3a2410; display:flex; gap:14px; padding:16px; font-size:16px; z-index:3; cursor:pointer; }
+#dlg[hidden] { display:none; }
+#d-name { position:absolute; top:-18px; left:16px; background:#8a4a2a; color:#fff; padding:2px 12px; border-radius:4px; font-weight:700; border:2px solid #3a1a08; }
+#d-name[hidden], #d-port[hidden] { display:none; }
+#d-port { width:112px; height:112px; image-rendering:pixelated; border:3px solid #a0703a; border-radius:4px; flex:none; background:#f6e6c8; }
+#d-body { flex:1; min-width:0; }
+#d-text { white-space:pre-line; min-height:48px; }
+#d-more { float:right; color:#a0703a; animation:blink2 .6s infinite alternate; }
+#d-more[hidden] { display:none; }
+@keyframes blink2 { to { opacity:.2; } }
+#d-choices { max-height:300px; overflow:auto; margin-top:6px; }
+#d-choices button { display:block; width:100%; text-align:left; margin:5px 0; padding:6px 10px; font:inherit; font-size:14px; background:#f6e0b0; color:#3a2410; border:2px solid #a0703a; border-radius:5px; cursor:pointer; }
+#d-choices button:hover { background:#ffd890; }
+#d-choices button.tog { display:inline-block; width:calc(50% - 6px); margin:3px; font-size:12px; }
+#d-choices button.tog.on { background:#9ad86a; border-color:#3a8a2a; }
+#d-choices button.ok { background:#e8a040; font-weight:700; text-align:center; }
+#d-choices button:disabled { opacity:.5; }
+#phone { position:absolute; right:14px; top:10px; bottom:10px; width:320px; background:#ededed; border:7px solid #222; border-radius:22px; display:flex; flex-direction:column; color:#111; z-index:4; overflow:hidden; box-shadow:0 8px 20px #0008; }
+#phone[hidden] { display:none; }
+#ph-head { display:flex; align-items:center; padding:10px 12px; background:#ededed; border-bottom:1px solid #d6d6d6; font-size:15px; }
+#ph-head b { flex:1; text-align:center; }
+#ph-head span { cursor:pointer; width:22px; font-size:17px; text-align:center; }
+#ph-body { flex:1; overflow-y:auto; }
+.row { display:flex; gap:10px; align-items:center; padding:10px 12px; background:#fff; border-bottom:1px solid #eee; cursor:pointer; }
+.row .mid { flex:1; min-width:0; } .row small { display:block; color:#999; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.badge { background:#fa5151; color:#fff; border-radius:10px; font-size:11px; padding:0 6px; }
+.av { width:36px; height:36px; flex:none; border-radius:5px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
+.msg { display:flex; gap:7px; margin:10px; align-items:flex-start; }
+.msg.me { flex-direction:row-reverse; }
+.msg .col { max-width:210px; } .msg small { color:#999; font-size:11px; }
+.bub { background:#fff; padding:8px 10px; border-radius:5px; font-size:14px; word-wrap:break-word; white-space:pre-line; }
+.me .bub { background:#95ec69; }
+.bub.rp { background:#fa9d3b; color:#fff; }
+.sys { text-align:center; color:#999; font-size:12px; margin:6px; }
+.empty { color:#999; text-align:center; padding:30px; }
+#ph-chips { padding:6px; background:#f7f7f7; border-top:1px solid #ddd; max-height:45%; overflow:auto; }
+#ph-chips:empty { display:none; }
+#ph-chips button { display:block; width:100%; margin:4px 0; padding:7px; text-align:left; border:1px solid #07c160; background:#fff; border-radius:6px; cursor:pointer; font:inherit; font-size:13px; }
+#ph-chips .acts { display:flex; flex-wrap:wrap; gap:4px; }
+#ph-chips .acts button { width:auto; margin:0; padding:4px 7px; font-size:12px; }
+#ph-chips button:hover { background:#e8f8ee; }
+#ph-form { display:flex; gap:5px; padding:6px; background:#f7f7f7; border-top:1px solid #ddd; }
+#ph-form[hidden] { display:none; }
+#ph-form input { flex:1; border:1px solid #ccc; border-radius:5px; padding:6px; font:inherit; font-size:13px; }
+#ph-form button { background:#07c160; color:#fff; border:0; border-radius:5px; padding:0 10px; cursor:pointer; }
+.prof { padding:14px; background:#fff; margin:8px; border-radius:8px; }
+.prof canvas { width:72px; height:72px; image-rendering:pixelated; border-radius:6px; background:#f6e6c8; display:block; margin:0 auto; }
+.prof h3 { text-align:center; margin:6px 0 10px; }
+.pr { display:flex; justify-content:space-between; gap:10px; padding:5px 0; border-bottom:1px solid #f0f0f0; font-size:13px; }
+.pr span { color:#888; flex:none; } .pr b { font-weight:500; text-align:right; }
+.panel { position:absolute; inset:10px; background:#f3f3f3; color:#222; z-index:7; border-radius:8px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 8px 24px #000a; }
+.panel[hidden] { display:none; }
+.ptitle { display:flex; align-items:center; gap:10px; padding:8px 12px; color:#fff; font-weight:700; }
+.ptitle .x { margin-left:auto; cursor:pointer; font-size:18px; }
+#mail .ptitle { background:#3a7bd5; } #paper .ptitle { background:#2b579a; }
+.mwrap { flex:1; display:flex; min-height:0; }
+#m-list { width:250px; overflow:auto; background:#fff; border-right:1px solid #ddd; }
+.mrow { padding:9px 12px; border-bottom:1px solid #eee; cursor:pointer; font-size:13px; }
+.mrow.unread b::before { content:'● '; color:#3a7bd5; }
+.mrow.sel { background:#e6f0fb; } .mrow div { color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#m-view { flex:1; overflow:auto; padding:18px 24px; background:#fff; }
+#m-view h3 { margin:0 0 6px; } .meta { color:#888; font-size:12px; margin-bottom:12px; }
+.mbody { white-space:pre-line; line-height:1.8; font-size:14px; }
+.mopts button { margin:12px 8px 0 0; padding:6px 12px; border:1px solid #3a7bd5; background:#fff; color:#3a7bd5; border-radius:5px; cursor:pointer; }
+#pp-tabs { display:flex; gap:4px; flex-wrap:wrap; }
+#pp-tabs button { border:0; border-radius:4px; padding:2px 8px; cursor:pointer; background:#ffffff30; color:#fff; font-size:12px; }
+#pp-tabs button.on { background:#fff; color:#2b579a; }
+.pwrap { flex:1; display:flex; min-height:0; background:#e6e6e6; position:relative; }
+#pp-doc { flex:1; overflow:auto; margin:14px; padding:28px 40px; background:#fff; box-shadow:0 1px 4px #0003; font-family:"Songti SC","SimSun",serif; color:#111; }
+#pp-doc h2 { text-align:center; font-size:20px; margin:0 0 6px; } #pp-doc .au { text-align:center; color:#666; font-size:12px; margin-bottom:12px; }
+#pp-doc p.body { font-size:15px; line-height:2.1; text-indent:2em; }
+.sent { cursor:pointer; border-radius:2px; } .sent:hover { background:#fff3b0; }
+.sent.mk { color:#c00; text-decoration:underline wavy #c00; background:#ffecec; }
+.sent sup { color:#c00; font-weight:700; font-size:10px; }
+.sent.hit { background:#c8f0c0; color:#060; text-decoration:none; }
+.sent.miss { background:#fff1a8; outline:1px dashed #c90; }
+.sent.fp { color:#999; text-decoration:line-through; background:#eee; }
+#pp-side { width:230px; overflow:auto; padding:14px 10px 14px 0; }
+.sh { font-weight:700; color:#2b579a; margin-bottom:6px; } .tip { color:#777; font-size:12px; }
+.cmt { background:#fff; border-left:4px solid #c00; padding:6px 8px; margin-bottom:8px; font-size:12px; border-radius:3px; box-shadow:0 1px 2px #0002; }
+.cmt small { display:block; color:#2b579a; margin-top:3px; }
+#pp-menu { position:absolute; z-index:8; background:#fff; border:1px solid #999; box-shadow:0 4px 12px #0004; border-radius:4px; padding:6px; width:220px; }
+#pp-menu[hidden] { display:none; }
+#pp-menu button { display:block; width:100%; text-align:left; border:0; background:none; padding:5px; cursor:pointer; font-size:13px; }
+#pp-menu button:hover { background:#e6f0fb; } #pp-menu button.del { color:#c00; }
+#pp-menu input { width:100%; margin:4px 0; padding:4px; font-size:12px; }
+#pp-foot { display:flex; align-items:center; gap:14px; padding:8px 14px; background:#fff; border-top:1px solid #ccc; font-size:13px; }
+#pp-foot input[type=range] { width:180px; vertical-align:middle; }
+#pp-foot .send { background:#2b579a; color:#fff; border:0; border-radius:5px; padding:6px 14px; cursor:pointer; font-weight:700; }
+#pp-foot .res { color:#333; line-height:1.6; }
+.att { display:inline-flex; gap:6px; align-items:center; margin-top:14px; padding:7px 12px; border:1px solid #c8d4e6; border-radius:6px; cursor:pointer; background:#f3f7fc; color:#2b579a; font-size:13px; }
+.att:hover { background:#e2ecf8; }
+.cv { margin-top:12px; border:1px solid #d0d7e2; border-radius:6px; padding:18px 22px; background:#fcfdff; font-size:13px; max-width:660px; color:#222; box-shadow:0 1px 4px #0001; }
+.cvtop { display:flex; gap:16px; align-items:center; border-bottom:2px solid #3a7bd5; padding-bottom:10px; margin-bottom:6px; }
+.cvtop canvas { width:84px; height:84px; image-rendering:pixelated; border:1px solid #ccc; background:#f6e6c8; flex:none; }
+.cvtop h3 { margin:0 0 6px; color:#3a7bd5; font-size:18px; }
+.kv { display:grid; grid-template-columns:auto 1fr auto 1fr; gap:3px 10px; }
+.kv span { color:#888; } .kv b { font-weight:500; }
+.cv h4 { margin:12px 0 4px; color:#3a7bd5; border-left:3px solid #3a7bd5; padding-left:6px; font-size:13px; }
+.cv ul { margin:0; padding-left:20px; line-height:1.7; } .cv p { margin:0; line-height:1.7; }
+#toasts { position:absolute; left:12px; top:10px; z-index:10; pointer-events:none; }
+#toasts div { background:#3a2210e0; color:#ffe08a; padding:3px 10px; margin-bottom:4px; border-radius:4px; font-weight:700; border:2px solid #a0703a; animation:up 2.4s forwards; font-size:13px; }
+@keyframes up { 80% { opacity:1 } to { opacity:0; transform:translateY(-12px) } }
+  aside { width:340px; display:flex; flex-direction:column; background:#14141c; border-left:3px solid #c84c0c; min-height:0; }
+  #status { padding:8px 12px; font-size:13px; color:#ddd; background:#c84c0c; font-weight:700; }
+  #status.busy::before { content:''; display:inline-block; width:8px; height:8px; margin-right:8px;
+         border-radius:50%; background:#fcfc00; animation:pulse .8s ease-out infinite alternate; }
+  @keyframes pulse { to { opacity:.25; } }
+  #log { flex:1; overflow-y:auto; padding:12px; font-family: system-ui, sans-serif; font-size:14px; }
+  #log > div { white-space:pre-wrap; margin:8px 0; word-wrap:break-word; }
+  .user { text-align:right; color:#fcbc3c; }
+  .sending { opacity:.5; }
+  .ask { font-weight:600; color:#8cf; }
+  .step { color:#888; font-size:12px; }
+  .out { font:12px/1.4 ui-monospace, monospace; color:#aaa; max-height:200px; overflow:auto; }
+  .error { color:#f66; }
+  .say { color:#eee; }
+  form { display:flex; gap:6px; padding:10px; border-top:1px solid #333; }
+  textarea { flex:1; resize:none; font:inherit; font-family:system-ui,sans-serif; background:#000; color:#fff;
+             border:2px solid #555; border-radius:4px; padding:6px; }
+  form button { background:#fc9838; color:#000; border:0; border-radius:4px; font-weight:700; padding:0 10px; cursor:pointer; }
+  #stop { background:#d82800; color:#fff; }
+
+@media (max-width: 800px) { body { flex-direction:column; } aside { width:auto; height:36vh; border-left:0; border-top:3px solid #c84c0c; } }
+</style></head>
+<body>
+<main>
+  <div id="hud"><span class="date" id="h-date"></span><span id="h-rep"></span><span id="h-funds"></span><span id="h-wallet"></span><span id="h-energy"></span>
+    <button id="mailbtn">📧 邮箱</button><button id="paperbtn">📝 批改论文</button><button id="phbtn">📱 微信</button><button id="savebtn" title="存档（对话中不可存）">💾 存档</button><button id="loadbtn" title="读档">📂 读档</button><a href="duo.html" target="_blank" rel="noopener" style="background:#e8a040;color:#3a2410;border:2px solid #3a1a08;border-radius:6px;padding:3px 9px;font-weight:700;text-decoration:none;font-size:13px">👥 联机互整</a></div>
+  <div id="stage">
+    <canvas id="game" width="320" height="192"></canvas>
+    <div id="toasts"></div>
+    <div id="dlg" hidden><div id="d-name" hidden></div><canvas id="d-port" width="32" height="32" hidden></canvas>
+      <div id="d-body"><div id="d-text"></div><span id="d-more" hidden>▼ 空格继续</span><div id="d-choices"></div></div></div>
+    <div id="phone" hidden><div id="ph-head"><span id="ph-back">‹</span><b id="ph-title">微信</b><span id="ph-info" title="资料">ⓘ</span><span id="ph-close">✕</span></div>
+      <div id="ph-body"></div><div id="ph-chips"></div><form id="ph-form" hidden><input id="ph-in" placeholder="自由输入，和TA聊点什么…" autocomplete="off"><button>发送</button></form></div>
+    <div id="mail" class="panel" hidden><div class="ptitle">📧 学院邮箱 · 收件箱<span class="x" data-close>✕</span></div><div class="mwrap"><div id="m-list"></div><div id="m-view"></div></div></div>
+    <div id="paper" class="panel" hidden><div class="ptitle">📝 论文批改（修订模式）<div id="pp-tabs"></div><span class="x" data-close>✕</span></div>
+      <div class="pwrap"><div id="pp-doc"></div><div id="pp-side"></div><div id="pp-menu" hidden></div></div><div id="pp-foot"></div></div>
+    <div id="msg"><h2>研途 · 导师物语</h2><p>你是一名新晋硕士生导师。出题、看考生来信、面试 10 位考生、带学生、批改论文、
+处理关系户和"会来事"的学生，最后送他们毕业。每局考生的姓名、籍贯、性格都随机。
+按 Enter 或点击画面开始</p><button id="msgload" hidden style="margin-top:8px;padding:6px 14px;font-size:14px;cursor:pointer;background:#e8a040;color:#3a2410;border:2px solid #3a1a08;border-radius:6px">📂 读取存档</button></div>
+  </div>
+  <div id="help">目标：<span id="goal">—</span>　|　WASD/方向键 走动 · 空格/E 互动 · 数字键 选择 · P 微信 · M 邮箱 · L 批改论文 · Esc 关闭</div>
+</main>
+<aside>
+  <div id="status" role="status">Connecting...</div>
+  <div id="log"></div>
+  <form id="form">
+    <textarea id="text" rows="2" placeholder="给 Fibona 发消息（Enter 发送）"></textarea>
+    <button>Send</button>
+    <button id="stop" type="button" hidden>Stop</button>
+  </form>
+</aside>
+<script>
+const $=id=>document.getElementById(id);
+const T=16,VW=320,VH=192;
+const cv=$('game'),g=cv.getContext('2d'),stage=$('stage');
+const R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h)};
+const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=v=>Math.max(0,Math.min(100,Math.round(v)));
+const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+const fill=(t,o)=>t.replace(/\{(\w+)\}/g,(_,k)=>o[k]??'');
+const MAP=["####################","####################","SS....p.#p........p.","..DDD...#.TTT.TTT...","..DDD...#...........",
+"........#...........","..rrrr..............","..rrrr..............","........#.TTT.TTT...","........#...........","p.......#.........p.","####################"];
+const SOLID='#DSTp', SEATS=[[11,4],[15,4],[11,9],[15,9],[11,2],[15,2],[11,7],[15,7]];
+const ME={name:'我',skin:'#f0c8a0',hair:'#3a2a1a',shirt:'#4a5a7a',glasses:true,av:'我'};
+const SEC={name:'王秘书',skin:'#f4d0b8',hair:'#503020',shirt:'#d87a8a',girl:true};
+const LEAD={name:'张副院长',skin:'#e8c0a0',hair:'#555',shirt:'#333',glasses:true};
+const GROUP={name:'组',shirt:'#07c160'};
+const PAPERS=[{"title": "不同植物配置对城市表流人工湿地氮磷去除效能的影响研究", "field": "环境科学", "sents": [{"t": "城市河流富营养化是当前水环境治理面临的突出问题，人工湿地因其运行成本低、生态效益好而被广泛应用于污染水体的净化。", "issue": null}, {"t": "据统计，我国超过七成的城市河流存在不同程度的富营养化现象，且这一比例仍在逐年上升。", "issue": "引用"}, {"t": "本研究以某城市景观河道旁的表流人工湿地为对象，设置芦苇单种、菖蒲单种及芦苇—菖蒲—苦草混合配置三种处理，开展为期12个月的野外监测。", "issue": null}, {"t": "每月定期采集进出水样品，测定总氮、氨氮、硝态氮及总磷浓度，并同步记录水温、溶解氧和水力停留时间等环境参数。", "issue": null}, {"t": "结果显示，混合配置湿地对总氮的平均去除率较单种配置提高了约4.2%（p=0.21），表明多物种配置对湿地脱氮效果具有显著的促进作用。", "issue": "数据"}, {"t": "三种处理对总磷的去除率在夏季均达到峰值，分别为58.3%、54.7%和61.2%，冬季则普遍下降至30%以下。", "issue": null}, {"t": "通过对不同季节的数据进行分析比较之后所得到的结果表明，使得水温成为影响湿地氮磷去除效率的最主要的关键因素。", "issue": "语病"}, {"t": "由此可见，只要在全国城市河道全面推广混合植物配置的人工湿地，即可从根本上解决我国城市水体的富营养化问题。", "issue": "逻辑"}, {"t": "本研究可为北方城市人工湿地的植物筛选与季节性运行管理提供一定的参考依据。", "issue": null}]}, {"title": "数字普惠金融对农村家庭消费结构升级的影响研究——基于CFPS微观数据的实证分析", "field": "经济学", "sents": [{"t": "本文将2014—2020年中国家庭追踪调查（CFPS）数据与北京大学数字普惠金融指数相匹配，考察数字普惠金融发展对农村家庭消费结构的影响。", "issue": null}, {"t": "研究采用双向固定效应模型，并以县域到省会城市的球面距离与时间趋势的交互项作为工具变量，以缓解潜在的内生性问题。", "issue": null}, {"t": "基准回归结果显示，数字普惠金融指数每提高1个单位，农村家庭发展享受型消费占比上升0.12个百分点（p=0.18），表明数字金融显著推动了农村家庭的消费升级。", "issue": "数据"}, {"t": "在替换核心解释变量、剔除直辖市样本以及调整样本时间窗口后，主要结论依然保持稳健。", "issue": null}, {"t": "进一步的机制分析表明，数字普惠金融主要是通过缓解流动性约束和提升支付便利性这两条渠道的作用机制来发挥其对消费的促进作用的。", "issue": "语病"}, {"t": "异质性分析发现，该效应在低收入组和中西部地区家庭中更为明显，而在东部地区家庭中不具有统计显著性。", "issue": null}, {"t": "有学者指出，数字金融已成为缩小城乡消费差距最为关键的政策工具。", "issue": "引用"}, {"t": "鉴于本文样本覆盖了全国25个省份，上述结论同样适用于其他发展中国家的农村地区。", "issue": "逻辑"}, {"t": "基于上述发现，本文建议进一步完善农村数字基础设施建设，并加强针对中低收入群体的数字金融素养培训。", "issue": null}]}, {"title": "短视频新闻接触与青年群体新闻信任：基于算法推荐感知的中介效应分析", "field": "新闻传播", "sents": [{"t": "近年来，短视频平台逐渐成为青年群体获取新闻资讯的重要渠道，其对传统新闻信任结构的影响引发学界广泛关注。", "issue": null}, {"t": "本研究以抖音和快手为例，基于对1236名18至30岁用户的问卷调查数据，考察短视频新闻接触频率与新闻信任之间的关系。", "issue": null}, {"t": "有学者指出，短视频已全面取代电视，成为当下青年人最信赖的新闻来源。", "issue": "引用"}, {"t": "研究采用分层回归分析方法，并控制了性别、学历、收入及居住地等人口统计学变量。", "issue": null}, {"t": "结果显示，短视频新闻接触频率对机构媒体信任具有显著的负向影响（β=-0.08，p=0.21）。", "issue": "数据"}, {"t": "通过对于研究结果的进一步深入分析和探讨研究，我们发现算法推荐感知在其中起到了一定的中介作用的效果。", "issue": "语病"}, {"t": "此外，新闻信任水平较低的用户本身也更倾向于通过短视频获取新闻，二者之间可能存在的双向关联有待纵向数据进一步检验。", "issue": null}, {"t": "由于部分受访者表示曾因观看短视频而质疑主流媒体报道，因此可以认为短视频必然导致全社会媒介公信力的整体崩塌。", "issue": "逻辑"}, {"t": "本研究为理解平台化语境下的新闻信任变迁提供了经验证据，也为主流媒体的融合转型实践提供了参考。", "issue": null}]}, {"title": "基于磁流变弹性体变刚度吸振器的数控机床主轴振动抑制研究", "field": "机械工程", "sents": [{"t": "高速数控机床主轴在切削过程中易产生颤振，严重影响加工表面质量与刀具寿命。", "issue": null}, {"t": "据统计，超过八成的机床加工误差直接来源于主轴振动。", "issue": "引用"}, {"t": "针对这一问题，本文提出一种基于磁流变弹性体的变刚度动力吸振器，并建立了主轴—吸振器耦合系统的动力学模型。", "issue": null}, {"t": "通过对该模型进行模态分析以及对其频响特性进行分析研究的方法，从而确定了吸振器刚度的最优调节区间。", "issue": "语病"}, {"t": "在立式加工中心上开展了不同主轴转速下的铝合金铣削试验，转速范围为3000～12000 r/min。", "issue": null}, {"t": "试验结果表明，安装吸振器后主轴端部振动加速度幅值平均降低了37.6%，表面粗糙度Ra由1.82 μm降至1.35 μm。", "issue": null}, {"t": "配对t检验显示，两组表面粗糙度差异的p值为0.21，表明吸振器对改善加工质量具有显著作用。", "issue": "数据"}, {"t": "由于该吸振器在铝合金铣削中表现良好，因此可推断其适用于所有材料和工况下的机床颤振抑制。", "issue": "逻辑"}, {"t": "本研究为机床主轴振动的半主动控制提供了理论依据和工程参考。", "issue": null}]}, {"title": "鼠李糖乳杆菌干预对高脂饮食诱导小鼠胰岛素抵抗及肠道菌群结构的影响", "field": "生物医学", "sents": [{"t": "肠道菌群失衡被认为与宿主糖脂代谢紊乱密切相关，但特定益生菌改善胰岛素抵抗的作用机制尚未完全阐明。", "issue": null}, {"t": "有研究表明，超过八成的2型糖尿病患者存在不同程度的肠道菌群失调。", "issue": "引用"}, {"t": "本研究将48只C57BL/6J雄性小鼠随机分为正常饮食组、高脂饮食组及高脂饮食联合鼠李糖乳杆菌干预组，干预周期为12周。", "issue": null}, {"t": "采用16S rRNA基因测序分析粪便菌群结构，并通过口服葡萄糖耐量试验和HOMA-IR指数评估胰岛素敏感性。", "issue": null}, {"t": "结果显示，干预组空腹血糖较高脂饮食组下降4.2%（P=0.21），表明该菌株可显著改善小鼠血糖水平。", "issue": "数据"}, {"t": "干预组粪便短链脂肪酸含量明显升高，且丁酸浓度与HOMA-IR指数呈负相关（r=-0.62，P<0.01）。", "issue": null}, {"t": "通过对肝脏组织进行检测分析的结果表明，干预组肝脏中炎症因子TNF-α和IL-6的表达水平得到了明显的降低和减少。", "issue": "语病"}, {"t": "因此，补充鼠李糖乳杆菌可作为各类代谢性疾病患者的常规治疗手段加以推广。", "issue": "逻辑"}, {"t": "上述发现提示该菌株可能通过调节短链脂肪酸代谢及抑制肝脏炎症参与改善胰岛素抵抗，其临床价值有待在人群研究中进一步验证。", "issue": null}]}, {"title": "远程办公强度对员工创新行为的影响：心理授权的中介作用与主管支持的调节作用", "field": "管理学", "sents": [{"t": "近年来，数字化转型推动远程办公模式在企业中迅速普及，其对员工创新行为的影响日益受到组织管理研究的关注。", "issue": null}, {"t": "有学者指出，远程办公已成为当前提升员工创新能力最有效的途径。", "issue": "引用"}, {"t": "本研究基于自我决定理论，构建了以心理授权为中介变量、主管支持为调节变量的理论模型。", "issue": null}, {"t": "研究对长三角地区12家科技企业的436名员工开展三阶段问卷调查，并采用层级回归与Bootstrap方法检验研究假设。", "issue": null}, {"t": "结果显示，远程办公强度对员工创新行为具有显著的正向影响（β=0.08，p=0.21）。", "issue": "数据"}, {"t": "心理授权在远程办公强度与员工创新行为之间发挥部分中介作用，主管支持则正向调节远程办公强度与心理授权之间的关系。", "issue": null}, {"t": "据此可以推断，各行业企业只要全面推行远程办公，均能显著提升整体组织创新水平。", "issue": "逻辑"}, {"t": "本研究的研究结论对于企业管理者在进行远程办公制度设计的过程当中具有一定的重要的参考借鉴意义。", "issue": "语病"}, {"t": "未来研究可采用纵向追踪设计，进一步考察远程办公影响员工创新行为的动态演化机制。", "issue": null}]}, {"title": "聚多巴胺衍生氮掺杂碳包覆纳米硅负极材料的制备及其储锂性能研究", "field": "材料科学", "sents": [{"t": "硅的理论比容量高达4200 mAh/g，被视为下一代锂离子电池负极的理想候选材料，但其在嵌锂过程中约300%的体积膨胀严重制约了实际应用。", "issue": null}, {"t": "本研究以聚多巴胺为碳源和氮源，结合原位聚合与高温碳化，制备了氮掺杂碳包覆纳米硅复合材料（Si@NC）。", "issue": null}, {"t": "据统计，目前超过九成的硅基负极研究均已证明碳包覆是解决体积膨胀问题最为有效的途径。", "issue": "引用"}, {"t": "XRD、TEM和XPS表征结果表明，所得碳层厚度约为8 nm，吡啶氮与吡咯氮的总含量达到5.6 at%。", "issue": null}, {"t": "电化学测试显示，Si@NC在0.5 A/g电流密度下循环500次后仍保持1523 mAh/g的可逆容量，容量保持率为82.4%。", "issue": null}, {"t": "与未包覆样品相比，Si@NC的首次库仑效率由78.1%提升至79.0%，表明氮掺杂碳层能够显著抑制首周SEI膜的不可逆形成。", "issue": "数据"}, {"t": "通过对通过引入氮掺杂碳层这一手段所带来的电子电导率提升的作用进行分析，使复合材料的倍率性能得到了明显的改善和提高。", "issue": "语病"}, {"t": "由于该复合材料表现出优异的循环稳定性，因此其内部硅颗粒在充放电过程中的体积变化得到了有效缓冲。", "issue": "逻辑"}, {"t": "本工作为高性能硅基负极材料的结构设计提供了一种简便且易于规模化的策略。", "issue": null}]}, {"title": "数字反哺与农村老年人社会参与：基于中部三省的混合方法研究", "field": "社会学", "sents": [{"t": "本研究关注数字技术扩散背景下农村老年人的社会参与问题，考察家庭内部“数字反哺”对其社会参与水平的影响及作用机制。", "issue": null}, {"t": "研究使用2021年在中部三省开展的问卷调查数据，共获得有效样本1236份，并辅以对32位老年人及其子女的半结构式访谈。", "issue": null}, {"t": "社会参与被操作化为正式参与与非正式参与两个维度，数字反哺则以子女在过去一年中提供数字技能指导的频率进行测量。", "issue": null}, {"t": "有学者指出，数字反哺已经成为当前农村家庭代际互动中最主要的形式。", "issue": "引用"}, {"t": "多元回归结果显示，子女提供的数字技能支持与老年人社会参与水平呈正相关（β=0.08，p=0.21），表明数字反哺显著提升了农村老年人的社会参与。", "issue": "数据"}, {"t": "访谈中有两位老人通过微信群重新加入了村庄文艺队，可见数字反哺能够普遍激活农村老年人的公共参与。", "issue": "逻辑"}, {"t": "通过对访谈资料的深入分析，使我们发现代际关系的亲密程度在其中起到了重要的、关键性的中介作用。", "issue": "语病"}, {"t": "异质性分析表明，数字反哺的作用在低龄及受教育程度较高的老年人群体中更为明显。", "issue": null}, {"t": "本研究从家庭代际支持视角拓展了老年人数字融入研究，并为推进积极老龄化相关政策提供了经验参考。", "issue": null}]}, {"title": "面向低照度场景的照度感知跨尺度注意力轻量级目标检测方法", "field": "计算机视觉", "sents": [{"t": "低照度场景下的目标检测是自动驾驶与安防监控中的关键难题，图像噪声与对比度退化会显著削弱网络的特征表达能力。", "issue": null}, {"t": "据统计，超过七成的夜间交通事故与车载视觉感知失效直接相关。", "issue": "引用"}, {"t": "为此，本文提出一种融合照度感知与跨尺度注意力的轻量级检测框架LACA-Det。", "issue": null}, {"t": "该框架首先通过照度估计分支生成像素级增益图，进而引导主干网络对暗区特征进行自适应增强。", "issue": null}, {"t": "在此基础上，我们设计了一种跨尺度注意力模块，该模块能够通过对不同尺度的特征进行跨尺度的交互融合，从而实现了对多尺度特征的有效地融合与利用。", "issue": "语病"}, {"t": "在ExDark和DARK FACE数据集上的实验表明，LACA-Det的mAP分别达到72.4%和48.9%，较基线YOLOv8n分别提升3.1和2.6个百分点。", "issue": null}, {"t": "消融实验中，照度感知分支带来0.3个百分点的mAP提升（p=0.21），表明该分支对整体性能具有显著贡献。", "issue": "数据"}, {"t": "同时，模型参数量仅为3.4M，在Jetson Orin平台上的推理速度达到58 FPS，满足边缘端实时部署需求。", "issue": null}, {"t": "由于本方法在两个低照度数据集上均表现优异，可以认为其同样适用于雨雾、遮挡、运动模糊等各类复杂退化场景。", "issue": "逻辑"}, {"t": "相关代码与预训练模型将在论文录用后公开发布。", "issue": null}]}, {"title": "生物炭配施减量氮肥对南方红壤稻田土壤肥力及水稻产量的影响", "field": "农学", "sents": [{"t": "为探明生物炭与氮肥配施对南方红壤稻田土壤肥力及水稻产量的影响，于2021—2022年在江西省进贤县开展了田间定位试验。", "issue": null}, {"t": "试验设置不施肥（CK）、常规施氮（N）、生物炭单施（B）及生物炭配施减量氮肥（BN）4个处理，每个处理3次重复，采用随机区组排列。", "issue": null}, {"t": "结果表明，与N处理相比，BN处理的土壤有机碳含量提高了18.6%，土壤pH值由4.82升至5.31。", "issue": null}, {"t": "据统计，我国南方稻田70%以上存在不同程度的酸化问题，而施用生物炭已被普遍认为是最有效的改良措施。", "issue": "引用"}, {"t": "BN处理水稻产量较N处理增加2.3%（P=0.21），表明生物炭配施减量氮肥可显著提升水稻产量。", "issue": "数据"}, {"t": "BN处理的氮肥偏生产力和氮素农学效率分别较N处理提高了21.4%和15.7%。", "issue": null}, {"t": "通过对土壤微生物群落的分析结果表明，BN处理提高了细菌Shannon多样性指数，使土壤脲酶和蔗糖酶活性得到了进一步的提升和增强。", "issue": "语病"}, {"t": "由此可见，生物炭配施减量氮肥适用于我国各类农田土壤，可在全国范围内大面积推广应用。", "issue": "逻辑"}, {"t": "本研究结果可为南方红壤稻田的减氮增效与土壤培肥提供理论依据和技术参考。", "issue": null}]}, {"title": "基于深度学习的校园食堂客流量预测研究", "field": "计算机应用", "sents": [{"t": "随着高校规模不断扩大，食堂就餐高峰期拥堵问题日益突出。", "issue": null}, {"t": "本文提出了一种基于LSTM的客流量预测模型，该模型能够完全解决所有食堂的拥堵问题。", "issue": "逻辑"}, {"t": "我们收集了某高校两个食堂三周的刷卡数据作为数据集。", "issue": null}, {"t": "实验结果表明，本模型的预测准确率高达99.9%，远超现有所有方法。", "issue": "数据"}, {"t": "已有研究表明，天气因素对就餐人数的影响可以忽略不计。", "issue": "引用"}, {"t": "通过对模型进行了优化调整的处理，使得模型的性能得到了提升的效果。", "issue": "语病"}, {"t": "此外，我们还设计了可视化界面，方便管理人员实时查看。", "issue": null}, {"t": "因此，本研究对全国高校后勤管理具有重大的指导意义。", "issue": "逻辑"}]}, {"title": "大学生短视频使用时长与学业拖延的关系研究", "field": "教育心理学", "sents": [{"t": "近年来，短视频平台在大学生群体中迅速普及。", "issue": null}, {"t": "本研究通过问卷调查了某校156名本科生的短视频使用情况。", "issue": null}, {"t": "结果发现短视频使用时长与拖延程度呈正相关，说明短视频是导致拖延的根本原因。", "issue": "逻辑"}, {"t": "据统计，我国大学生日均刷短视频时间超过6小时。", "issue": "引用"}, {"t": "在本次调查中，女生的拖延程度显著高于男生（p=0.21）。", "issue": "数据"}, {"t": "本研究采用了SPSS软件进行数据分析。", "issue": null}, {"t": "对于这个问题的出现，是值得我们深思和引起重视的问题。", "issue": "语病"}, {"t": "最后，本文从个人、学校两个层面提出了相应的干预建议。", "issue": null}]}, {"title": "城市共享单车停放点布局优化研究", "field": "交通工程", "sents": [{"t": "共享单车的无序停放已成为城市管理的一大难题。", "issue": null}, {"t": "本文以某市中心城区为研究区域，构建了停放点选址优化模型。", "issue": null}, {"t": "模型采用遗传算法求解，并在三天的骑行数据上进行了验证。", "issue": null}, {"t": "优化后，用户平均步行距离缩短了85%，乱停放现象彻底消失。", "issue": "数据"}, {"t": "国外学者普遍认为，停放点密度越高越好。", "issue": "引用"}, {"t": "由于遗传算法收敛速度快，所以本模型适用于全国所有城市。", "issue": "逻辑"}, {"t": "通过本文的研究，使共享单车的停放问题得到了有效的改善了。", "issue": "语病"}, {"t": "未来工作将考虑潮汐效应对停放需求的影响。", "issue": null}]}, {"title": "某地区方言词汇在青少年中的使用现状调查", "field": "语言学", "sents": [{"t": "方言是地域文化的重要载体。", "issue": null}, {"t": "本研究在某市三所中学开展了方言词汇使用情况调查。", "issue": null}, {"t": "调查显示，98%的青少年已完全不会说方言，方言将在十年内消失。", "issue": "数据"}, {"t": "这一现象主要是由于短视频的流行造成的。", "issue": "逻辑"}, {"t": "有学者指出，方言保护应当从幼儿园阶段开始。", "issue": "引用"}, {"t": "本文采用了问卷调查和访谈相结合的研究方法。", "issue": null}, {"t": "在调查的过程当中，我们发现了很多的有趣的现象的存在。", "issue": "语病"}, {"t": "最后，本文就方言传承提出了若干建议。", "issue": null}]}];
+const ISSUE={语病:'语病 / 表述不清',数据:'数据不支撑结论',引用:'缺少引用 / 来源',逻辑:'逻辑跳跃 / 过度推广'};
+const SURN=['林','周','苏','王','陈','赵','李','张','刘','杨','黄','吴','徐','孙','马','胡','郭','何','高','罗'];
+const GM=['子轩','一鸣','浩然','宇航','俊杰','大锤','博文','天佑','思远','明哲','嘉豪','志强'];
+const GF=['小满','晴','思雨','梓涵','欣怡','雨桐','可馨','诗琪','佳怡','若曦','婷婷','梦瑶'];
+const PROVS=[['四川','腊肠'],['山东','煎饼和大葱'],['河南','烩面礼盒'],['湖南','剁椒酱'],['江苏','盐水鸭'],['广东','腊味礼盒'],['浙江','龙井茶'],['湖北','热干面'],['黑龙江','红肠和松子'],['陕西','肉夹馍礼盒'],['云南','鲜花饼'],['福建','铁观音'],['重庆','火锅底料'],['安徽','黄山毛峰'],['江西','南丰蜜桔'],['山西','老陈醋']];
+const UNIS=['本校','华中某985','西北某211','省属双非一本','某二本院校','中部某211','东部某985'];
+const SKINS=['#f6d0b0','#f0c8a0','#f8d8c0','#e0b080','#f4d0b8'],HAIRS=['#2a1a10','#1a1a1a','#6a4020','#3a2030','#a04030','#202040'],SHIRTS=['#e87a7a','#5a8ad8','#f0c040','#6a9a4a','#c070d0','#808080','#40a0a0','#e08840'];
+const QS=['说说你的专业基础。','为什么选择我的课题组？','讲讲你的科研或项目经历。'];
+const TR={
+diligent:{tag:'勤奋踏实',abil:[6,8],claim:0,intro:'老师好！我叫{name}，{prov}人，{uni}本科。我有点紧张，但我准备了很久！',
+ ans:[['专业课每门我都整理了三遍笔记，基础应该比较扎实。','我每天在图书馆待十个小时，课后习题都刷了两遍。'],['大三读过您组里的两篇论文，一直很感兴趣。','学长说您对学生很负责，我想跟着您踏踏实实做研究。'],['做过一个大创项目，从数据采集到报告都是自己做的。','跟本科导师做过一个省级课题，负责数据处理。']],
+ mail:'研究生阶段我计划：研一修完学分、完成文献综述；研二做实验，争取发一篇核心期刊；研三专心写毕业论文。我会踏踏实实跟着您学习！',
+ hello:'老师好！我是{name}，以后请多多指教！🙏',gift:'老师教师节快乐！我手写了一张贺卡，放在您桌上啦～✉️',paper:'老师，我的小论文初稿写完了，改了五遍才敢发您……您有空帮我看看吗？🙏',ny:'老师新年快乐！祝您身体健康，万事如意！🧧',
+ ask:'老师，目前进度{p}%，{b}。这周计划再推进一节！',proj:'好的老师，我马上开始！',care:['谢谢老师关心！我挺好的，就是最近实验有点多～','有老师这句话我就不累了！'],gen:['好的老师，我记下了！','嗯嗯，我明白了，谢谢老师～'],chat:['最近食堂二楼新开了一家麻辣烫，超好吃！老师有空可以试试～','我这周把三篇文献精读完了，笔记整理好了随时给您看！']},
+genius:{tag:'天赋型·爱打游戏',abil:[7,9],claim:10,intro:'老师好，我是{name}，{prov}人，{uni}本科。说实话初试没怎么复习，靠底子考的。',
+ ans:[['数学和编程比较有信心，其他靠临场发挥。','基础还行吧，主要是理解快。'],['听说您组里比较自由？我喜欢自己探索问题。','您的方向挺有意思的，比别的组好玩。'],['写过一个开源小工具，GitHub 上两百多个 star，论文还没写过。','打过几次算法竞赛，拿过省一。']],
+ mail:'我对这个方向很感兴趣，自学了不少相关课程。研究生期间想做点真正有意思的东西，不想只为了水论文。',
+ hello:'老师好～{name}报到😎',gift:'老师节日快乐！[表情包：熊猫头举牌"老师辛苦了"]',paper:'老师，论文写完了！就是……参考文献格式还没弄😅',ny:'老师新年好！🎆 [表情包：财神爷]',
+ ask:'快了快了，{p}%左右吧，{b}～',proj:'行，这个简单，交给我😎',care:['还行还行，就是昨晚通宵……调代码，对，调代码。','谢谢老师～我好得很！'],gen:['收到～','行嘞老师👌','哈哈好的'],chat:['老师您玩游戏吗？……啊不是，我最近在研究强化学习，游戏只是灵感来源！','我写了个脚本自动整理文献，老师要不要用？']},
+cross:{tag:'跨专业·热情',abil:[5,7],claim:0,intro:'老师您好！我是{name}，{prov}人，{uni}本科，跨专业考过来的。基础弱一点，但我真的很想做这个方向！',
+ ans:[['专业基础确实是短板，不过核心教材已经自学完了。','我把本专业四年的核心课都自学了一遍。'],['本科写论文时就引用过您的文章，那时候就想跟您读研了。','我觉得您的方向和我本科专业能做交叉研究！'],['在校报做了两年主编，写东西和沟通比较擅长。','参加过一次全国大学生调研比赛，拿了二等奖。']],
+ mail:'作为跨考生，我计划研一补齐专业基础课，同时发挥本科专业优势，尝试做一些交叉方向的研究。虽然起点低，但我学习能力很强！',
+ hello:'老师好呀！我是{name}，超级开心能进组！🌸',gift:'老师！我画了一张您在讲台上的Q版插画送给您🎨 教师节快乐！',paper:'老师～小论文初稿好啦！我觉得故事讲得还行，就是实验部分有点虚🥲',ny:'老师新年快乐呀！🐉 祝您新的一年论文篇篇中！',
+ ask:'老师！{p}%啦，{b}，我觉得越来越有感觉了！',proj:'好呀！正好学点新东西！',care:['谢谢老师！我超好的！就是偶尔觉得自己基础太差了……','老师真好🥹'],gen:['好哒老师！','明白啦～','嗯嗯！'],chat:['我最近在想一个交叉方向的点子，等想清楚了跟您汇报！','老师，我发现咱们方向的论文写得都好硬，我想写得好读一点～']},
+honest:{tag:'老实憨厚·能吃苦',abil:[4,6],claim:0,intro:'老师好！我叫{name}，{prov}来的，{uni}本科。啥活都能干，搬设备、跑实验都没问题！',
+ ans:[['基础一般，但我笨鸟先飞，每天早上六点去自习室。','学得慢，但学过的东西我都记得牢。'],['听师兄说您对学生负责。我家里条件一般，就想踏踏实实读完。','您组里做实验多，我就喜欢动手。'],['本科在实验室帮老师跑了两年实验，仪器都会用。','暑假在工地打过工，吃苦不怕。']],
+ mail:'我家在农村，是家里第一个研究生。读研期间我会认真完成老师布置的每一项任务，争取顺利毕业，找个好工作让爸妈过上好日子。',
+ hello:'老师好！我是{name}，有啥活您尽管吩咐！💪',gift:'老师节日快乐！我从{prov}老家带了点{spec}，放您办公室门口了，自家的不值钱！',paper:'老师，论文我写完了……写得不好，您别生气。',ny:'老师过年好！老家这边下大雪了，给您拜年了！',
+ ask:'老师，我现在{p}%，{b}，还得再加把劲。',proj:'没问题老师，啥活都行！',care:['不累不累！我从小干活惯了。','谢谢老师……我妈让我好好跟着您学。'],gen:['好的老师！','中！我记住了。','嗯嗯，我这就去办。'],chat:['我妈问您过年来不来我家吃饺子。','实验室那台离心机我修好了！']},
+fawn:{tag:'情商高·会来事',abil:[4,7],claim:15,intro:'老师好～我是{name}！{prov}来的，{uni}本科。早就在官网看过您照片了，本人比照片还年轻呢😊',
+ ans:[['基础还可以啦，主要是您出的题特别有水平，我答得很顺～','专业课分数还不错，都是看您的教材学的！'],['因为您是这个领域的大牛呀！学姐说您组里出来的都特别好找工作。','我关注您好久啦，您每篇论文我都拜读过！'],['组织过好几次学术会议的志愿者，认识不少老师，对接资源很拿手。','当过学生会副主席，组织协调我最擅长了～']],
+ mail:'读研期间我想在科研上全力以赴，也特别愿意帮老师分担组里的事务，报销、会议、对接都可以交给我！',
+ hello:'老师好！{name}报道～以后组里团建交给我！🎉',gift:'老师教师节快乐🌹 我给您准备了一盒明前龙井，已经放您桌上了，您千万别客气～',paper:'老师，人家小论文写完啦～您帮我把把关嘛🥺',ny:'老师新年快乐🧧 祝您新年评上杰青！',
+ ask:'老师放心！已经{p}%了，{b}，全靠您上次点拨～',proj:'老师您交给我的事，一定办得漂漂亮亮！',care:['老师您才是最辛苦的！您要注意身体呀～','有您这么好的导师，我一点都不累😊'],gen:['老师说得太对了！','好的老师～您真是太英明了','收到收到！马上办！'],chat:['老师，下周组里搞个团建怎么样？我来组织！','老师您这件外套好有品位，在哪买的呀？']},
+retake:{tag:'二战上岸·沉默坚持',abil:[6,8],claim:0,intro:'老师好。我叫{name}，{prov}人，{uni}本科。去年考过一次，差了三分。这一年我在学校附近租房复习。',
+ ans:[['二战把所有知识点又过了一遍，错题本写了四本。','每个知识点我都能讲清楚。'],['去年就想报您，没考上。今年还是报您。','我只想跟您。'],['这一年没有项目经历，不过我自学了 Python，复现过两篇顶会论文的代码。','本科毕设做的就是这个方向。']],
+ mail:'去年我差三分没能考上，今年继续报考您。我知道自己不擅长表达，但我能坚持。读研期间我会把每一件事做完、做好。',
+ hello:'老师好。我是{name}。谢谢您给我这个机会。',gift:'老师，教师节快乐。（附图：一支钢笔）用第一个月补助买的。',paper:'老师，小论文初稿发您了。',ny:'老师新年快乐。',
+ ask:'{p}%。{b}。',proj:'好的。',care:['……谢谢老师关心，我挺好的。','就是有点想家。'],gen:['好的。','嗯。','收到，老师。'],chat:['……谢谢老师关心，我挺好的。就是有点想家。','我昨天把那篇论文的代码跑通了。']},
+shy:{tag:'社恐·内向',abil:[6,8],claim:-5,intro:'老、老师好……我叫{name}，{prov}人，{uni}本科……（声音越来越小）',
+ ans:[['基础……还行，我、我笔试分数还可以……','高数和专业课都是九十多分……'],['因为……您的论文写得很清楚，我都看懂了。','我觉得您组里……比较安静。'],['做过一个课程项目……一个人做的。','帮本科老师整理过数据……']],
+ mail:'老师您好，我不太会说话，所以写邮件。我很喜欢您的研究方向，读研期间想安安静静地把研究做好。',
+ hello:'老师好……我是{name}……请多指教。',gift:'老、老师教师节快乐……我做了一张电子贺卡，链接在这🙈',paper:'老师……论文初稿写好了……写得不好请您多批评……',ny:'老师新年快乐……',
+ ask:'……{p}%……{b}……对不起有点慢。',proj:'好、好的……我尽量。',care:['……谢谢老师，我还好。','（TA发了一个害羞的表情）'],gen:['……好的。','嗯嗯……','（TA发了一个点头的表情）'],chat:['……老师，我养了一只猫，它叫"论文"。','我……最近在学画画。']},
+striver:{tag:'卷王·目标明确',abil:[7,9],claim:0,intro:'老师好，我是{name}，{prov}人，{uni}本科，GPA专业第二。目标是研究生期间发两篇SCI，然后申请读博。',
+ ans:[['专业课全部九十分以上，数学竞赛省一。','绩点3.9，六级620。'],['您组近三年的发文量在学院排第一。','您的方向是热点，好发文章。'],['本科一作发过一篇EI会议，二作一篇北大核心。','做过两个国创项目，都结题优秀。']],
+ mail:'我的规划：研一上发一篇会议，研一下投SCI二区，研二再出一篇，研三申请博士。我可以每天在实验室待到十一点。',
+ hello:'老师好，{name}。已经在看组里的论文了。',gift:'老师教师节快乐！另外我整理了组里近五年的论文脉络图，发您邮箱了。',paper:'老师，小论文写完了，目标期刊我选好了，您看看哪里需要改。',ny:'老师新年快乐！我过年也在看文献。',
+ ask:'{p}%，{b}。另外我还在准备第二篇，计划投SCI二区。',proj:'好的，不过会不会影响论文进度？……我会平衡好。',care:['还好，就是睡得少，没事。','谢谢老师，等论文中了再休息。'],gen:['明白。','好的，我今晚就弄。','收到，已记入日程。'],chat:['老师，听说隔壁组的学生发了篇一区……我们是不是也该加把劲？','我做了个表格，记录每天的科研时间。']},
+chill:{tag:'佛系·随缘',abil:[4,7],claim:10,intro:'老师好～我叫{name}，{prov}的，{uni}本科。读研嘛，主要想多学点东西，顺便延缓一下就业😂',
+ ans:[['基础……够用吧哈哈。','考前突击了三个月，运气不错。'],['您组里氛围好，大家都说您人特别nice。','离宿舍近……啊不是，方向好！'],['参加过社团，组织过音乐节。','做过课程设计，拿了个良。']],
+ mail:'老师好！研究生期间我希望能把专业学扎实，毕业找个稳定的工作。不追求多卷，但该做的一定做好～',
+ hello:'老师好～{name}来啦，多多关照🌿',gift:'老师节日快乐呀～ 送您一盆多肉，好养活，跟我一样🌵',paper:'老师，论文写完啦，应该……还行吧？',ny:'老师新年快乐！吃好喝好～',
+ ask:'嗯……{p}%？{b}吧，不着急哈老师～',proj:'啊……好吧～',care:['还好还好～我心态一直很好的！','谢谢老师～我刚吃了顿火锅，满血复活。'],gen:['好嘞～','行～','哈哈收到'],chat:['老师，周末天气好，您也出去走走呗～','我最近在学做咖啡，下次给您带一杯！']},
+conn:{tag:'家境优渥·很自信',abil:[2,4],claim:20,intro:'老师好，我是{name}，{prov}人，{uni}本科。我舅舅……哦，没什么，您叫我小{last}就行。',
+ ans:[['基础……我觉得读研主要看综合能力吧。','初试是差了点，但复试我准备得很充分。'],['家里长辈推荐的，说您人特别好。','我舅舅说您很有前途。'],['本科的时候在我舅舅朋友的公司实习过。','参加过一个模拟联合国。']],
+ mail:'',hello:'老师好，{name}。以后有什么需要帮忙的，跟我说，家里能办的都能办。',gift:'老师教师节快乐，我舅舅让我给您带了两瓶飞天茅台，已经放您办公室柜子里了。',paper:'老师，论文我写好了，参考了一些网上的资料，您看看。',ny:'老师新年好！我舅舅也让我替他问您好。',
+ ask:'差不多{p}%吧，{b}。我舅舅说不急。',proj:'这个……能让别人做吗？……好吧。',care:['挺好的，谢谢老师。','还行吧。'],gen:['好的。','嗯，知道了。','行。'],chat:['老师，我舅舅说下个月请您吃饭。','我最近在考虑买车，老师有推荐吗？']},
+};
+const PROJ=[{n:'横向项目：帮企业开发系统（经费+3000）',fx:{prog:-3,mood:-6,aff:-2},funds:3000},{n:'纵向课题：负责一个子任务',fx:{prog:6,mood:-3}},{n:'帮我写基金申请书（声望+2）',fx:{prog:-2,mood:-6,aff:-3},rep:2},{n:'帮忙跑腿报销',fx:{mood:-4,aff:-3}}];
+const FAWNMSG=['老师您今天穿的这件衬衫真精神！组里同学都说您像三十出头😊','老师，我把您下周的报销单都贴好了，发票按日期排好了～','老师您上次组会讲的那段，我录下来反复听了三遍！太有启发了！','老师，我看您办公室绿萝有点黄，偷偷给您换了一盆新的🌿','老师，听说您孩子快中考了？我有个亲戚是重点中学的名师，可以介绍～','老师，您喜欢喝什么咖啡？我明天给您带一杯～'];
+const REV=[
+ {t:'老师，我的实验结果和预期完全相反😭 怎么办……',o:['别慌，明天来办公室我们一起分析','先查查代码有没有 bug'],e:[{aff:6,prog:4,mood:4},{prog:2}]},
+ {t:'老师，我最近压力有点大，晚上睡不着……',o:['周末别做实验了，出去走走，有事随时找我','读研都这样，坚持一下'],e:[{aff:8,mood:12},{aff:-6,prog:3,mood:-8}]},
+ {t:'老师，师兄让我帮他跑数据，我自己的课题有点顾不上了……',o:['你先做自己的，我跟他说','互相帮助嘛，都是学习'],e:[{aff:6,prog:3},{aff:-3,mood:-4}]},
+ {t:'老师，我想报名学校的羽毛球赛，周三下午组会能请个假吗？',o:['去吧，拿个冠军回来！','组会优先，比赛下次吧'],e:[{aff:6,mood:6},{aff:-5,prog:2,mood:-5}]},
+];
+const DEF_GOAL='找学生聊天/指导（实验室按空格，或微信私聊），批改论文，或到办公桌电脑前推进时间';
+const TL=[
+ {d:'准备期 · 9月',goal:'到办公桌（左上）的电脑前，推进到 12 月初试'},
+ {d:'准备期 · 12月 初试',ev:evFirstExam,goal:'看看邮箱里的考生来信（📧 / M 键），然后到电脑前推进到 3 月复试'},
+ {d:'准备期 · 3月 复试',ev:evInterview,goal:'到电脑前推进到 9 月开学'},
+ {d:'研一 · 9月 开学',ev:evMeet},{d:'研一 · 9月10日 教师节',ev:evTeacherDay},{d:'研一 · 中秋',ev:evMoon},{d:'研一 · 10月 团建',ev:evTeam},
+ {d:'研一 · 11月 小论文',ev:evPaper,goal:'打开「📝 批改论文」（L 键），逐句批注、打分后退回'},{d:'研一 · 12月 抢服务器',ev:evGPU},{d:'研一 · 春节',ev:evNewYear},{d:'研一 · 4月 春季团建',ev:evTeam2},
+ {d:'研一 · 6月',ev:evStudy},{d:'研二 · 9月',ev:evSign},{d:'研二 · 11月 周末',ev:evBabysit},{d:'研二 · 12月 投稿季',ev:evPaper,goal:'打开「📝 批改论文」批改新交的论文'},
+ {d:'研三 · 3月 毕设',ev:evGrad,goal:'批改毕业论文，陪学生冲刺，然后推进到答辩'},{d:'研三 · 5月 散伙饭',ev:evFarewell},{d:'研三 · 6月 答辩',ev:evDefense},
+];
+const S={started:false,busy:false,ended:false,panel:null,turn:0,rep:50,funds:5000,wallet:8000,energy:3,examDiff:0,examOpen:0,styleMul:1,favor:0,students:[],cands:[],mails:[],papers:[],rel:{},usedPapers:new Set(),goal:'—'};
+const P={x:5*T,y:8*T,dir:'down',moving:false};
+const keys={}; let frame=0;
+const live=()=>S.students.filter(s=>s.shown);
+const stuById=id=>S.students.find(s=>s.id===id);
+const rk=(a,b)=>a.id<b.id?a.id+'|'+b.id:b.id+'|'+a.id;
+const rel=(a,b)=>S.rel[rk(a,b)]||0;
+const addRel=(a,b,n)=>{S.rel[rk(a,b)]=Math.max(-100,Math.min(100,rel(a,b)+n))};
+
+// ---------- feedback ----------
+function toast(t){const d=el('div','',t);$('toasts').append(d);setTimeout(()=>d.remove(),2400)}
+function fx(s,o){const out=[];for(const [k,lab] of [['aff','好感'],['prog','进度'],['mood','心情']])if(o[k]){const b=s[k];s[k]=clamp(b+o[k]);const d=s[k]-b,u=k==='prog'?'%':'';
+  if(d){toast(`${s.name} ${lab}${d>0?'+':''}${d}${u}`);out.push(`${lab}${d>0?'+':''}${d}${u}`)}else{const t=`${lab}${o[k]>0?'已满':'已经到底了'}`;toast(`${s.name} ${t}`);out.push(t)}}
+  return out.length?'（'+out.join('，')+'）':''}
+function fxAll(o,except){live().forEach(s=>{if(s!==except)fx(s,o)})}
+function stat(k,n,label){S[k]+=n;toast(`${label} ${n>0?'+':''}${n}`);hud()}
+function hud(){$('h-date').textContent='📅 '+TL[S.turn].d;$('h-rep').textContent='⭐ 声望 '+S.rep;{let e=$('h-praise');if(!e&&$('h-rep')){e=document.createElement('span');e.id='h-praise';e.className=$('h-rep').className;$('h-rep').after(e)}if(e)e.textContent='👍 好评率 '+(S.praise|0)+'%'}$('h-funds').textContent='💼 经费 ¥'+S.funds;
+  $('h-wallet').textContent='👛 ¥'+S.wallet;$('h-energy').textContent='精力 '+'⚡'.repeat(S.energy)+'·'.repeat(Math.max(0,3-S.energy));$('goal').textContent=S.goal;
+  const um=S.mails.filter(m=>!m.read).length,up=S.papers.filter(p=>!p.done).length;
+  $('mailbtn').textContent=um?`📧 邮箱 (${um})`:'📧 邮箱';$('mailbtn').classList.toggle('new',um>0);
+  $('paperbtn').textContent=up?`📝 批改论文 (${up})`:'📝 批改论文';$('paperbtn').classList.toggle('new',up>0)}
+
+// ---------- candidates ----------
+function genCands(){
+  const rest=shuffle(['diligent','genius','cross','honest','retake','shy','striver','chill','diligent','striver','honest','cross']).slice(0,7);
+  const used=new Set();
+  return shuffle(['fawn','fawn','conn',...rest]).map((tr,i)=>{
+    const girl=Math.random()<0.5;let name;do{name=pick(SURN)+pick(girl?GF:GM)}while(used.has(name));used.add(name);
+    const pv=pick(PROVS),t=TR[tr];
+    const c={id:'c'+i,name,girl,trait:tr,label:t.tag,prov:pv[0],spec:pv[1],uni:tr==='conn'?pick(['某海外大学（交换一年）','某民办三本','省属双非']):pick(UNIS),
+      abil:t.abil[0]+rnd(t.abil[1]-t.abil[0]+1),skin:pick(SKINS),hair:pick(HAIRS),shirt:pick(SHIRTS),fawn:tr==='fawn',conn:tr==='conn',pre:0,last:name[0],glasses:Math.random()<0.3};
+    c.raw=300+c.abil*12+rnd(25);c.ans=t.ans.map(a=>pick(a));return c})}
+
+// ---------- dialogue ----------
+let typing=null,adv=null,pickState=null;
+function drawPortrait(c,mood,canvas){const p=(canvas||$('d-port')).getContext('2d');const r=(x,y,w,h,k)=>{p.fillStyle=k;p.fillRect(x,y,w,h)};
+  r(0,0,32,32,'#f6e6c8');r(0,24,32,8,'#ecd6a8');
+  if(c.girl){r(6,7,4,19,c.hair);r(22,7,4,19,c.hair)}
+  r(4,26,24,6,c.shirt);r(8,24,16,3,c.shirt);r(13,21,6,4,c.skin);
+  r(9,8,14,14,c.skin);r(10,22,12,1,c.skin);r(8,12,1,4,c.skin);r(23,12,1,4,c.skin);
+  r(8,4,16,5,c.hair);r(7,6,2,8,c.hair);r(23,6,2,8,c.hair);r(9,8,6,2,c.hair);r(17,8,5,1,c.hair);
+  r(11,12,3,1,c.hair);r(18,12,3,1,c.hair);
+  r(11,14,3,3,'#fff');r(18,14,3,3,'#fff');r(12,14,2,3,'#222');r(19,14,2,3,'#222');r(12,14,1,1,'#fff');r(19,14,1,1,'#fff');
+  if(c.glasses){p.strokeStyle='#333';p.lineWidth=1;p.strokeRect(10.5,13.5,5,4);p.strokeRect(17.5,13.5,5,4);r(15,15,2,1,'#333')}
+  if(c.girl||mood==='smile'){r(10,18,2,1,'#f4a0a0');r(20,18,2,1,'#f4a0a0')}
+  const m='#a04040';r(14,20,4,1,m);
+  if(mood==='smile'){r(13,19,1,1,m);r(18,19,1,1,m)}else if(mood==='sad'){r(13,21,1,1,m);r(18,21,1,1,m);r(11,17,1,2,'#7cf')}}
+function openDlg(who,mood){closePhone();$('dlg').hidden=false;const n=$('d-name');n.hidden=!who;if(who)n.textContent=who.name;
+  const pc=$('d-port');pc.hidden=!(who&&who.skin);if(who&&who.skin)drawPortrait(who,mood||'normal');
+  $('d-choices').replaceChildren();$('d-more').hidden=true}
+function typeText(t){return new Promise(res=>{const box=$('d-text');let i=0;box.textContent='';
+  function done(){clearInterval(iv);box.textContent=t;typing=null;res()}
+  const iv=setInterval(()=>{i+=2;box.textContent=t.slice(0,i);if(i>=t.length)done()},25);typing=done})}
+async function say(who,text,mood){openDlg(who,mood);await typeText(text);$('d-more').hidden=false;await new Promise(r=>adv=r);adv=null;$('d-more').hidden=true}
+async function choose(who,text,opts,mood){openDlg(who,mood);await typeText(text);return new Promise(res=>{const box=$('d-choices');
+  opts.forEach((o,i)=>{const b=el('button','',`${i+1}. ${o}`);b.onclick=e=>{e.stopPropagation();pickState=null;box.replaceChildren();res(i)};box.append(b)});
+  pickState={n:opts.length,pick:i=>box.children[i].click()}})}
+function pickMany(text,items,max){openDlg(null);$('d-text').textContent=text;return new Promise(res=>{const box=$('d-choices');const sel=new Set();
+  const ok=el('button','ok');const upd=()=>{ok.disabled=!sel.size;ok.textContent=`确认录取（${sel.size}/${max}）`};
+  items.forEach((t,i)=>{const b=el('button','tog',`${(i+1)%10}. ${t}`);b.onclick=e=>{e.stopPropagation();
+    if(sel.has(i)){sel.delete(i);b.classList.remove('on')}else if(sel.size<max){sel.add(i);b.classList.add('on')}upd()};box.append(b)});
+  ok.onclick=e=>{e.stopPropagation();if(!sel.size)return;pickState=null;box.replaceChildren();res([...sel].sort((a,b)=>a-b))};
+  box.append(ok);upd();pickState={n:items.length,pick:i=>box.children[i].click()}})}
+function advance(){if(typing)return typing();if(adv)return adv()}
+$('dlg').onclick=()=>advance();
+
+// ---------- WeChat ----------
+const chats={};let curChat=null,phoneOpen=false,clock=0,chipState=null,phView='chat',typingWho=null,projFor=null;
+function chat(id,name,av,group){return chats[id]||(chats[id]={id,name,av,group,msgs:[],unread:0,t:0})}
+function avatar(p){const d=el('div','av',p.av||p.name[0]);d.style.background=p.shirt||'#07c160';return d}
+function openPhone(id){phoneOpen=true;$('phone').hidden=false;if(id!==undefined){curChat=id;phView='chat'}if(curChat&&chats[curChat])chats[curChat].unread=0;renderPhone()}
+function closePhone(){if(chipState)return;phoneOpen=false;$('phone').hidden=true;renderPhone()}
+async function pmsg(id,from,text,kind){$('dlg').hidden=true;if(!phoneOpen||curChat!==id||phView!=='chat')openPhone(id);await sleep(600);
+  const c=chats[id];c.msgs.push({from,text,kind});c.t=++clock;if(!(phoneOpen&&curChat===id))c.unread++;renderPhone()}
+function preply(id,opts,kinds){$('dlg').hidden=true;openPhone(id);return new Promise(res=>{chipState={id,opts,kinds,res};renderPhone()})}
+function pickChip(i){const s=chipState;chipState=null;const c=chats[s.id];c.msgs.push({from:'me',text:s.opts[i],kind:s.kinds&&s.kinds[i]});c.t=++clock;renderPhone();s.res(i)}
+function meSay(id,text,kind){const c=chats[id];c.msgs.push({from:'me',text,kind});c.t=++clock;renderPhone()}
+function stuSay(s,text,delay=900){typingWho=s.id;renderPhone();setTimeout(()=>{typingWho=null;const c=chat(s.id,s.name,s);c.msgs.push({from:s,text});c.t=++clock;if(!(phoneOpen&&curChat===s.id))c.unread++;renderPhone()},delay)}
+function moodTxt(s){return s.depressed?'😶 抑郁休学中':s.mood<30?`😞 很低落（${s.mood}）`:s.mood<55?`😐 一般（${s.mood}）`:`😊 不错（${s.mood}）`}
+function profileEl(s){const d=el('div','prof');const c2=el('canvas');c2.width=32;c2.height=32;drawPortrait(s,s.mood<30?'sad':'smile',c2);d.append(c2,el('h3','',s.name+(s.girl?' ♀':' ♂')));
+  const rows=[['籍贯',s.prov],['本科',s.uni],['性格',s.label],['初试',s.score+' 分'],['好感',s.aff+' / 100'],['心情',moodTxt(s)],['论文进度',s.prog+'%'],['本期任务',s.project||'无']];
+  const fr=live().filter(o=>o!==s&&rel(s,o)>=15).map(o=>o.name),en=live().filter(o=>o!==s&&rel(s,o)<=-15).map(o=>o.name);
+  rows.push(['交好',fr.join('、')||'—'],['不和',en.join('、')||'—']);
+  if(s.conn&&s.revealed)rows.push(['备注','⚠️ 副院长打过招呼的「关系户」']);
+  if(s.liar)rows.push(['备注','曾在你面前说同门坏话，且不属实']);
+  rows.forEach(([k,v])=>{const r=el('div','pr');r.append(el('span','',k),el('b','',v));d.append(r)});return d}
+function renderPhone(){
+  const total=Object.values(chats).reduce((a,c)=>a+c.unread,0);const btn=$('phbtn');
+  btn.textContent=total?`📱 微信 (${total})`:'📱 微信';btn.classList.toggle('new',total>0);
+  if(!phoneOpen)return;const body=$('ph-body'),chips=$('ph-chips'),form=$('ph-form');body.replaceChildren();chips.replaceChildren();form.hidden=true;
+  if(!curChat){$('ph-title').textContent='微信';$('ph-back').style.visibility='hidden';$('ph-info').style.visibility='hidden';
+    const list=Object.values(chats).sort((a,b)=>b.t-a.t);if(!list.length)body.append(el('div','empty','还没有消息'));
+    for(const c of list){const row=el('div','row');row.append(avatar(c.av));const mid=el('div','mid');const last=c.msgs[c.msgs.length-1];
+      mid.append(el('b','',c.name),el('small','',last?last.text:'（点进来主动找TA聊天）'));row.append(mid);if(c.unread)row.append(el('span','badge',c.unread));
+      row.onclick=()=>{curChat=c.id;phView='chat';c.unread=0;renderPhone()};body.append(row)}
+    if(chipState){const b=el('button','','有一条消息等你回复 →');b.onclick=()=>{curChat=chipState.id;phView='chat';renderPhone()};chips.append(b)}
+    return}
+  const c=chats[curChat],st=stuById(curChat);c.unread=0;
+  $('ph-back').style.visibility='visible';$('ph-info').style.visibility=st?'visible':'hidden';
+  if(phView==='profile'&&st){$('ph-title').textContent=st.name+' 的资料';body.append(profileEl(st));const b=el('button','','← 返回聊天');b.onclick=()=>{phView='chat';renderPhone()};chips.append(b);return}
+  $('ph-title').textContent=typingWho===curChat?'对方正在输入…':c.name;
+  for(const m of c.msgs){if(m.kind==='sys'){body.append(el('div','sys',m.text));continue}
+    const me=m.from==='me';const row=el('div','msg'+(me?' me':''));const av=avatar(me?ME:m.from);
+    const ms=!me&&m.from.id&&stuById(m.from.id);if(ms){av.style.cursor='pointer';av.title='查看资料';av.onclick=()=>{chat(ms.id,ms.name,ms);curChat=ms.id;phView='profile';renderPhone()}}
+    row.append(av);const col=el('div','col');if(!me&&c.group)col.append(el('small','',m.from.name));col.append(el('div','bub'+(m.kind?' '+m.kind:''),m.text));row.append(col);body.append(row)}
+  body.scrollTop=body.scrollHeight;
+  if(chipState){if(chipState.id===curChat)chipState.opts.forEach((o,i)=>{const b=el('button','',`${i+1}. ${o}`);b.onclick=()=>pickChip(i);chips.append(b)});
+    else{const b=el('button','','有一条消息等你回复 →');b.onclick=()=>{curChat=chipState.id;renderPhone()};chips.append(b)}}
+  else if(st&&!S.busy&&!S.ended){
+    if(projFor===st.id){PROJ.forEach((p,k)=>{const b=el('button','',p.n);b.onclick=()=>{projFor=null;actProj(st,k)};chips.append(b)});const b=el('button','','取消');b.onclick=()=>{projFor=null;renderPhone()};chips.append(b)}
+    else{const row=el('div','acts');[['📊 问问进度',()=>actAsk(st)],['📋 布置项目',()=>{projFor=st.id;renderPhone()}],['💬 关心一下',()=>actCare(st)],['🧧 红包¥200',()=>actRed(st)],['👤 资料',()=>{phView='profile';renderPhone()}]]
+      .forEach(([t,f])=>{const b=el('button','',t);b.onclick=f;row.append(b)});chips.append(row)}
+    form.hidden=false}}
+$('ph-back').onclick=()=>{if(phView==='profile'){phView='chat'}else curChat=null;renderPhone()};$('ph-close').onclick=()=>closePhone();
+$('ph-info').onclick=()=>{phView=phView==='profile'?'chat':'profile';renderPhone()};
+$('phbtn').onclick=()=>phoneOpen?closePhone():openPhone();
+function once(s,k){s.done=s.done||{};if(s.done[k]===S.turn)return false;s.done[k]=S.turn;return true}
+function askReply(s){if(s.depressed)return '……老师，对不起，我最近状态很差，什么都没做。';
+  const p=clamp(s.prog+TR[s.trait].claim),b=p>=80?'基本写完了，在润色':p>=50?'写了一大半，实验还差一点':p>=20?'在做实验，刚有点眉目':'还在看文献找方向';
+  return fill(TR[s.trait].ask,{p,b})}
+function actAsk(s){meSay(s.id,'最近论文进度怎么样了？');stuSay(s,askReply(s))}
+function actCare(s){if(s.done&&s.done.care===S.turn){meSay(s.id,'最近还好吗？');stuSay(s,pick(['老师您刚问过啦😂 我挺好的！','嗯嗯，真的没事，谢谢老师～','（TA发来一个“抱抱”表情）']));return toast('本阶段已关心过TA，没有额外效果')}
+  meSay(s.id,'最近怎么样？别太累了，有困难跟我说。');once(s,'care');const r=fx(s,{aff:4,mood:8});stuSay(s,pick(TR[s.trait].care));setTimeout(()=>sysMsg(s.id,`${s.name} 感受到了你的关心 ${r}`),1100)}
+function actRed(s){if(s.done&&s.done.red===S.turn)return toast('本阶段已经给TA发过红包了');if(S.wallet<200)return toast('钱包不够了');
+  meSay(s.id,'🧧 ¥200 红包，买点好吃的','rp');stat('wallet',-200,'钱包');once(s,'red');const r=fx(s,{aff:4,mood:4});if(s.fawn||s.conn)S.favor+=1;stuSay(s,'谢谢老师！🧧');setTimeout(()=>sysMsg(s.id,`${s.name} 收下了红包 ${r}`),1100)}
+function actProj(s,k){const p=PROJ[k];meSay(s.id,`给你个任务：${p.n.replace(/（.*）/,'')}`);
+  if(!once(s,'proj'))return stuSay(s,'老师……我这阵子已经有一个任务了，实在忙不过来了😣');
+  s.project=p.n.replace(/（.*）/,'');fx(s,p.fx);if(p.funds)stat('funds',p.funds,'经费');if(p.rep)stat('rep',p.rep,'声望');
+  if(k===1&&(s.fawn||s.conn)){S.favor+=1.5}
+  stuSay(s,TR[s.trait].proj)}
+function freeReply(s,t){const tr=TR[s.trait];
+  const other=live().find(o=>o!==s&&(t.includes(o.name)||(o.name.length>2&&t.includes(o.name.slice(1)))));
+  if(other){const r=rel(s,other);if(s.fawn&&r<10)return `${other.name}啊……我不好说什么，就是TA最近好像不太把组里的事放在心上，老师您多留意～`;
+    return r>=15?`${other.name}人很好的！我们经常一起吃饭。`:r<=-15?`……我跟${other.name}不太熟，您问TA本人吧。`:`${other.name}？还行吧，平时交流不多。`}
+  if(/论文|进度|实验|写得|怎么样了|ddl|deadline/i.test(t))return askReply(s);
+  if(/辛苦|加油|注意身体|休息|别太累|还好吗|开心/.test(t)){if(once(s,'care'))fx(s,{aff:3,mood:6});return pick(tr.care)}
+  if(/垃圾|废物|蠢|笨|滚|延毕|退学|开除|太差|失望|没用/.test(t)){fx(s,{aff:-8,mood:-12});return ['shy','honest','retake'].includes(s.trait)?'……对不起老师，我会更努力的。':s.trait==='genius'?'……行吧。':'老师，我知道我做得不够好，但您这样说我真的很难受。'}
+  if(/吃饭|食堂|聚餐|奶茶|火锅|请客|咖啡/.test(t)){if(once(s,'meal'))fx(s,{aff:3,mood:4});return pick(['好呀！老师请客我必到😋','真的吗！我去叫上大家？','嘿嘿，那我就不客气啦～'])}
+  if(/家|爸|妈|老家|回家/.test(t))return `我家在${s.prov}，挺想家的……过年才能回去。`;
+  if(/谢谢|好的|收到|^嗯/.test(t))return pick(['嗯嗯！','好的老师～','收到！']);
+  return pick(tr.gen)}
+$('ph-form').onsubmit=e=>{e.preventDefault();const s=stuById(curChat);const t=$('ph-in').value.trim();if(!s||!t)return;$('ph-in').value='';meSay(s.id,t);stuSay(s,freeReply(s,t),900+Math.min(1500,t.length*40))};
+
+// ---------- mail ----------
+let curMail=null;
+function openMail(){if(S.busy)return toast('先处理完当前事件');closePhone();S.panel='mail';$('mail').hidden=false;renderMail()}
+function closePanels(){S.panel=null;$('mail').hidden=true;$('paper').hidden=true;$('pp-menu').hidden=true;hud()}
+function renderMail(){const L=$('m-list'),B=$('m-view');L.replaceChildren();B.replaceChildren();
+  if(!S.mails.length)L.append(el('div','empty','收件箱是空的'));
+  S.mails.slice().reverse().forEach(m=>{const r=el('div','mrow'+(m.read?'':' unread')+(m===curMail?' sel':''));r.append(el('b','',m.from),el('div','',m.subj));r.onclick=()=>{curMail=m;m.read=true;renderMail();hud()};L.append(r)});
+  if(!curMail){B.append(el('div','empty','选择一封邮件阅读'));return}
+  const m=curMail;B.append(el('h3','',m.subj),el('div','meta',`发件人：${m.from} <${m.addr}>`),el('div','mbody',m.body));
+  if(m.cand){const a=el('div','att',(m.showCV?'▾ ':'📎 ')+`个人简历_${m.cand.name}.pdf`+(m.showCV?'（点击收起）':'（点击查看）'));a.onclick=()=>{m.showCV=!m.showCV;renderMail()};B.append(a);if(m.showCV)B.append(resumeEl(m.cand))}
+  if(m.opts&&!m.replied){const box=el('div','mopts');m.opts.forEach((o,i)=>{const b=el('button','',o);b.onclick=()=>{m.replied=o;if(m.on)m.on(i);toast('已回复');renderMail()};box.append(b)});B.append(box)}
+  else if(m.replied)B.append(el('div','meta','✔ 你已回复：'+m.replied))}
+function mailFrom(c){const t=TR[c.trait];
+  const body=c.conn?`老师您好！\n\n我是${c.name}，${c.prov}人，${c.uni}毕业，初试 ${c.score} 分。\n\n我舅舅说您人特别好，让我一定报您。分数可能不算高，但我舅舅说复试更重要。研究生期间我打算先熟悉熟悉环境，其他的都听您安排。简历在附件里。\n\n${c.name}`
+   :`尊敬的老师：\n\n您好！冒昧打扰。我是今年报考您方向的考生${c.name}，来自${c.prov}，本科就读于${c.uni}，初试成绩 ${c.score} 分。\n\n${t.mail}\n\n${c.fawn?'您的每一篇论文我都拜读过，您是我最敬仰的学者！':''}附件是我的个人简历，请您查阅。期待复试时能当面向您请教。\n\n此致\n敬礼！\n\n学生：${c.name}`;
+  return {cand:c,from:c.name,addr:`kaoyan${1000+rnd(9000)}@${pick(['qq.com','163.com','126.com'])}`,subj:c.fawn?`【仰慕已久】考生${c.name}向您问好`:`考研学生${c.name}（初试${c.score}分）自荐信`,body,read:false,
+    opts:['欢迎报考，复试加油！','邮件已收到，复试按程序进行。','（不回复）'],on:i=>{c.pre+=[6,2,0][i]}}}
+
+// ---------- resume (attached to emails) ----------
+const CVA={diligent:['校级一等奖学金（两次）','大学生创新创业训练项目 · 省级立项','三好学生'],genius:['ACM-ICPC 区域赛铜奖','蓝桥杯 省赛一等奖','开源项目 GitHub 200+ star'],cross:['校报 优秀主编','全国大学生调研大赛 二等奖','普刊发表论文 1 篇'],honest:['国家励志奖学金','实验室优秀助理','暑期社会实践 先进个人'],fawn:['校学生会 副主席','优秀学生干部','学术会议 优秀志愿者'],retake:['本科毕业设计 校级优秀','首次考研差 3 分，二战报考'],shy:['校级二等奖学金','数学建模竞赛 校赛一等奖'],striver:['国家奖学金','EI 会议论文 第一作者','国创项目 结题优秀 ×2'],chill:['校园音乐节 总策划','社团 优秀干部'],conn:['模拟联合国 最佳代表（校内）','某集团公司 实习证明']};
+const CVS={diligent:'SPSS、Origin、Office 熟练',genius:'Python、C++、PyTorch、Linux',cross:'新闻写作、排版、Python 入门',honest:'仪器操作、电路焊接、Origin',fawn:'活动组织、公文写作、Photoshop',retake:'Python、论文代码复现',shy:'Python、MATLAB、绘画',striver:'Python、MATLAB、LaTeX、PyTorch',chill:'视频剪辑、咖啡、吉他',conn:'高尔夫、驾驶、社交'};
+function cvData(c){if(c.cv)return c.cv;const pol=58+rnd(16),eng=c.conn?44+rnd(8):52+rnd(22),rest=c.score-pol-eng,math=Math.round(rest*0.47),maj=rest-math;
+  const gpa=c.conn?(2.3+Math.random()*0.4).toFixed(2):Math.min(3.95,2.5+c.abil*0.15+Math.random()*0.15).toFixed(2);
+  const cet=(c.abil>=6||c.trait==='striver')?`CET-6 ${430+c.abil*18+rnd(40)}`:`CET-4 ${440+rnd(80)}`;
+  const rank=c.conn?'未提供':`${Math.max(1,Math.round((10-c.abil)*4+rnd(8)))} / ${120+rnd(80)}`;
+  const major=c.trait==='cross'?pick(['新闻学','汉语言文学','英语','市场营销']):'本专业';
+  return c.cv={pol,eng,math,maj,gpa,cet,rank,major,party:pick(['共青团员','共青团员','中共党员','中共预备党员']),birth:`${c.trait==='retake'?1998+rnd(2):2000+rnd(3)}.${1+rnd(12)}`,
+    phone:`1${pick(['38','52','86','77','59'])}****${1000+rnd(9000)}`}}
+function resumeEl(c){const d=cvData(c),box=el('div','cv'),kv=p=>{const g=el('div','kv');p.forEach(([k,v])=>g.append(el('span','',k),el('b','',String(v))));return g};
+  const top=el('div','cvtop'),pc=el('canvas');pc.width=32;pc.height=32;drawPortrait(c,'smile',pc);
+  const info=el('div');info.append(el('h3','',`${c.name} · 个人简历`),kv([['性别',c.girl?'女':'男'],['出生年月',d.birth],['籍贯',c.prov],['政治面貌',d.party],['电话',d.phone],['报考','本方向 · 学术硕士']]));
+  top.append(pc,info);box.append(top);
+  box.append(el('h4','','教育背景'),kv([['本科院校',c.uni],['本科专业',d.major],['GPA',d.gpa+' / 4.0'],['专业排名',d.rank],['英语',d.cet],['','']]));
+  box.append(el('h4','','初试成绩'),kv([['政治',d.pol],['英语一',d.eng],['数学一',d.math],['专业课（你出的题）',d.maj],['总分',c.score],['','']]));
+  const ul=el('ul');CVA[c.trait].forEach(a=>ul.append(el('li','',a)));box.append(el('h4','','获奖情况'),ul);
+  box.append(el('h4','','科研 / 实践经历'),el('p','',c.ans[2]));
+  box.append(el('h4','','专业技能'),el('p','',CVS[c.trait]));
+  box.append(el('h4','','自我评价'),el('p','',c.conn?'性格开朗，适应能力强，社会资源丰富，善于沟通协调。':TR[c.trait].mail.split('。')[0]+'。'));
+  return box}
+
+// ---------- paper grading ----------
+let curPaper=null;
+function assignPaper(s,kind){let pool=PAPERS.filter((p,i)=>!S.usedPapers.has(i));if(!pool.length){S.usedPapers.clear();pool=PAPERS}
+  const src=pick(pool);S.usedPapers.add(PAPERS.indexOf(src));
+  const p={stu:s,kind,title:src.title,field:src.field,sents:src.sents.map(x=>({...x})),marks:{},score:70,done:false};
+  if(!src.funny){const uf=S.usedFunny=S.usedFunny||new Set();const n=Math.min(3,1+(s.abil<=4?1:0)+((s.trait==='chill'||s.conn)?1:0));
+    for(let k=0;k<n;k++){const ty=pick(Object.keys(FUNNY));let c=FUNNY[ty].filter(t=>!uf.has(t));if(!c.length)c=FUNNY[ty];const t=pick(c);uf.add(t);
+      p.sents.splice(1+rnd(p.sents.length-1),0,{t,issue:ty})}}
+  S.papers.push(p);hud();return p}
+function openPapers(){if(S.busy)return toast('先处理完当前事件');closePhone();S.panel='paper';$('paper').hidden=false;
+  if(!curPaper||curPaper.done)curPaper=S.papers.find(p=>!p.done)||curPaper||S.papers[S.papers.length-1]||null;renderPaper()}
+function renderPaper(){const tabs=$('pp-tabs'),doc=$('pp-doc'),side=$('pp-side'),foot=$('pp-foot');[tabs,doc,side,foot].forEach(x=>x.replaceChildren());$('pp-menu').hidden=true;
+  S.papers.forEach(p=>{const b=el('button',p===curPaper?'on':'',`${p.done?'✔':'●'} ${p.stu.name}·${p.kind}`);b.onclick=e=>{e.stopPropagation();curPaper=p;renderPaper()};tabs.append(b)});
+  if(!curPaper){doc.append(el('div','empty','还没有学生交论文。学生交稿后会出现在这里。'));return}
+  const p=curPaper;doc.append(el('h2','',p.title),el('div','au',`作者：${p.stu.name}　｜　指导教师：我　｜　${p.field}　｜　${p.kind}`),el('b','','摘要：'));
+  const ks=Object.keys(p.marks).map(Number).sort((a,b)=>a-b);
+  const para=el('p','body');
+  p.sents.forEach((s,i)=>{const sp=el('span','sent',s.t);const mk=p.marks[i];
+    if(mk){sp.classList.add('mk');sp.append(el('sup','',`[${ks.indexOf(i)+1}]`))}
+    if(p.done){sp.classList.remove('mk');if(s.issue&&mk)sp.classList.add('hit');else if(s.issue)sp.classList.add('miss');else if(mk)sp.classList.add('fp')}
+    else sp.onclick=e=>{e.stopPropagation();showMenu(i,sp)};
+    para.append(sp)});
+  doc.append(para);
+  side.append(el('div','sh','批注'));
+  if(!ks.length)side.append(el('div','tip',p.done?'没有批注':'点击正文中有问题的句子，选择问题类型、写批注（像 Word 修订一样）。改完给个分，点「退回修改」。'));
+  ks.forEach((k,j)=>{const m=p.marks[k];const c=el('div','cmt');c.append(el('b','',`[${j+1}] ${ISSUE[m.type]}`));if(m.note)c.append(el('div','',m.note));
+    if(p.done){const real=p.sents[k].issue;c.append(el('small','',real?(real===m.type?'✔ 判断准确':'✔ 确实有问题，实际是：'+ISSUE[real]):'✘ 这句其实没问题'))}
+    side.append(c)});
+  if(p.done){foot.append(el('div','res',p.result));return}
+  const lab=el('label','','评分：');const rg=el('input');rg.type='range';rg.min=0;rg.max=100;rg.value=p.score;const v=el('b','',' '+p.score);
+  rg.oninput=()=>{p.score=+rg.value;v.textContent=' '+rg.value};lab.append(rg,v);
+  const btn=el('button','send','退回修改并给出评分');btn.onclick=e=>{e.stopPropagation();submitPaper(p)};
+  foot.append(lab,btn,el('span','',`已批注 ${ks.length} 处`))}
+function showMenu(i,sp){const mnu=$('pp-menu');mnu.replaceChildren();mnu.hidden=false;
+  const r=sp.getBoundingClientRect(),pr=mnu.parentElement.getBoundingClientRect();
+  mnu.style.left=Math.max(4,Math.min(r.left-pr.left,pr.width-230))+'px';mnu.style.top=Math.max(4,Math.min(r.bottom-pr.top+4,pr.height-230))+'px';
+  const note=el('input');note.placeholder='批注内容（可选），再选问题类型';note.value=(curPaper.marks[i]&&curPaper.marks[i].note)||'';note.onclick=e=>e.stopPropagation();
+  mnu.append(note);
+  for(const k in ISSUE){const b=el('button','','✎ '+ISSUE[k]);b.onclick=e=>{e.stopPropagation();curPaper.marks[i]={type:k,note:note.value.trim()};renderPaper()};mnu.append(b)}
+  if(curPaper.marks[i]){const b=el('button','del','✕ 删除批注');b.onclick=e=>{e.stopPropagation();delete curPaper.marks[i];renderPaper()};mnu.append(b)}
+  setTimeout(()=>note.focus(),0)}
+$('pp-menu').onclick=e=>e.stopPropagation();
+$('paper').onclick=()=>{$('pp-menu').hidden=true};
+function submitPaper(p){const s=p.stu;const ks=Object.keys(p.marks).map(Number);
+  const issues=p.sents.filter(x=>x.issue).length;let hit=0,exact=0,fp=0;
+  ks.forEach(k=>{const real=p.sents[k].issue;if(real){hit++;if(real===p.marks[k].type)exact++}else fp++});
+  const miss=issues-hit,q=clamp(92-issues*7+(s.abil-5)*3);
+  fx(s,{prog:3*hit+2*exact+(miss?0:4)-fp,aff:2*hit-2*fp});
+  const d=p.score-q;let line;
+  if(d<-15){fx(s,{aff:-6,mood:-8});line='分数比论文实际水平低不少，学生有点受打击。'}
+  else if(d>15){fx(s,{aff:4});if(s.fawn||s.conn)S.favor+=2;line='分数偏高，学生很开心'+((s.fawn||s.conn)?'，但其他同学私下有点议论。':'。')}
+  else{fx(s,{aff:2,mood:3});line='分数和论文水平相符，学生心服口服。'}
+  p.done=true;p.result=`问题句共 ${issues} 处：你找出 ${hit} 处（类型判断准确 ${exact} 处），漏掉 ${miss} 处，误判 ${fp} 处。你的评分 ${p.score}，论文实际水平约 ${q}。${line}（绿色=找对　黄色虚线=漏掉　灰色删除线=误判）`;
+  renderPaper();hud();
+  const msg=`收到老师的批注了！一共 ${ks.length} 处修订，我都改好了。`+(fp?`不过有 ${fp} 处我觉得原文没问题……我再想想。`:'')+(d<-15?' ……这个分数，我会继续努力的。':d>15?' 谢谢老师给这么高的分！':'');
+  setTimeout(()=>stuSay(s,msg,10),1200)}
+$('mailbtn').onclick=()=>S.panel==='mail'?closePanels():openMail();
+$('paperbtn').onclick=()=>S.panel==='paper'?closePanels():openPapers();
+document.querySelectorAll('[data-close]').forEach(x=>x.onclick=e=>{e.stopPropagation();closePanels()});
+
+// ---------- story ----------
+async function run(fn){if(S.busy)return;S.busy=true;try{await fn()}catch(e){console.error(e);toast('出错了：'+e.message)}finally{S.busy=false;$('dlg').hidden=true;hud();renderPhone()}}
+async function showDate(d){const m=$('msg');m.querySelector('h2').textContent=d;m.querySelector('p').textContent='';m.hidden=false;await sleep(1300);m.hidden=true}
+async function evIntro(){
+  await say(null,'这是一所国内的普通 211 大学。你刚评上硕士生导师，有了自己的办公室和一间小实验室。');
+  await say(null,'接下来几年，你要出考研题、读考生来信、面试 10 位考生、带学生做科研、批改论文、陪他们过节，最后送他们毕业。\n学生之间的关系、谁在背后说谁，都会悄悄影响他们的心情。');
+  await say(null,'WASD/方向键走动，空格或 E 互动，数字键选选项。\nP 微信（可主动私聊学生、点头像看资料），M 邮箱，L 批改论文。\n走到左上角办公桌的电脑前按空格推进时间。\n电脑里还有「💼 课题组经营」：花经费/声望/钱包买服务器、带学生开会、申请扩招。');}
+async function evExam(){
+  chat('sec','王秘书（学院）',SEC);
+  await pmsg('sec',SEC,'老师您好～今年硕士研究生初试的专业课由您来命题哈，下个月前把三道大题发我邮箱。');
+  const r=await preply('sec',['收到，没问题。','又是我啊……好吧。']);
+  await pmsg('sec',SEC,r?'辛苦辛苦！能者多劳嘛😄':'谢谢老师！');await sleep(400);
+  await say(null,'你打开电脑，新建了一个文档：《硕士研究生入学考试 · 专业课试题》。');
+  const Q=[['第一题 · 名词解释，考什么？',['教材里的经典基础概念','近三年的前沿热词','教材第七章的冷门脚注']],
+    ['第二题 · 简答题，怎么出？',['经典方法的原理与步骤','结合一篇最新论文谈谈看法','一道要手算半小时的推导']],
+    ['第三题 · 论述题，压轴怎么定？',['结合教材论述本学科的发展','结合社会热点，开放作答','证明一个你读博时才弄明白的定理']]];
+  for(const [q,o] of Q){const i=await choose(ME,q,o);if(i===1)S.examOpen++;if(i===2)S.examDiff+=2}
+  await say(null,(S.examDiff>=4?'你满意地看着这份试卷，觉得今年的考生大概要哭了。':S.examOpen>=2?'这份试卷很有思想，能看出谁是真的会思考。':'一份中规中矩的试卷，考的就是基本功。')+' 你把试卷发给了王秘书。');}
+async function evFirstExam(){const qn=applyQuality();
+  S.cands.forEach(c=>{const t=c.trait;c.score=Math.max(305,Math.min(440,c.raw-S.examDiff*5+(['genius','cross','striver'].includes(t)?S.examOpen*6:0)+(['diligent','retake','honest'].includes(t)?(3-S.examOpen)*3:0)+(t==='retake'?10:0)))});
+  S.cands.sort((a,b)=>b.score-a.score);
+  await say(null,'12月，全国研究生入学考试。考场里，考生们正对着你出的题奋笔疾书。');await pmsg('sec',SEC,qn+`（当前学生好评率 ${S.praise|0}%）`);
+  if(S.examDiff>=4){await pmsg('sec',SEC,'老师……考研论坛上有考生说今年专业课出得太偏了，帖子还上了热门😅');stat('rep',-5,'声望')}
+  else if(S.examOpen>=2){await pmsg('sec',SEC,'老师，有考生在网上夸今年专业课题很有思想，院长都看到了👍');stat('rep',5,'声望')}
+  await pmsg('sec',SEC,'初试成绩出来了！报您方向、进复试的有 10 位同学：\n'+S.cands.map(c=>`${c.name}（${c.prov}）${c.score} 分`).join('\n'));
+  await preply('sec',['好的，复试见。']);
+  const conn=S.cands.find(c=>c.conn);chat('lead','张副院长',LEAD);
+  await pmsg('lead',LEAD,`老师啊，今年有个叫${conn.name}的考生报了你，是我一个老朋友的孩子，人挺机灵的。复试的时候……多关照关照啊😊`);
+  const k=await preply('lead',['好的院长，我会关注的。','院长放心，我们都按程序公平录取。']);
+  await pmsg('lead',LEAD,k?'……呵呵，好，按程序，按程序。':'好好好，辛苦了！改天一起吃饭。');if(k)S.rep+=0;
+  const senders=shuffle(S.cands.filter(c=>!c.conn)).sort((a,b)=>(b.fawn?1:0)-(a.fawn?1:0)).slice(0,5);
+  [...senders,conn].forEach(c=>S.mails.push(mailFrom(c)));hud();
+  await say(null,`你的邮箱收到了 ${senders.length+1} 封考生来信（套磁信），里面有他们的学业规划和初试成绩。\n点顶部「📧 邮箱」或按 M 查看，你的回复会影响考生对你的第一印象。`);}
+async function evInterview(){
+  const r2=S.round===2,quota=r2?Math.min(4,2+(S.quotaBonus||0)):4;
+  await say(null,`${r2?'又一年复试季，你的第二届学生将在这里诞生。\n':''}3月，复试现场。你坐在会议室正中，面前是 ${S.cands.length} 份简历。你的招生名额：${quota} 个。`);
+  for(const c of S.cands){
+    await say(null,`下一位：${c.name}${mailTag(c)}（${c.prov} · ${c.uni} · 初试 ${c.score} 分 · ${c.label}）`);
+    await say(c,fill(TR[c.trait].intro,c));
+    const mm=S.mails.find(x=>x.cand===c);
+    if(mm&&mm.replied&&mm.replied!=='（不回复）')await say(c,mm.replied.includes('欢迎')?'老师，谢谢您回我的邮件！收到回复那天我激动得一晚上没睡着！':'老师，您的邮件回复我收到了，我会按程序好好准备的。','smile');
+    const asked=[];
+    for(;;){const left=[0,1,2].filter(k=>!asked.includes(k));
+      const i=await choose(c,asked.length?'（还有什么想问的吗？）':'（你想问些什么？）',left.map(k=>QS[k]).concat([asked.length?'好的，请出去等通知吧。':'（不问了，直接下一位）']));
+      if(i>=left.length)break;asked.push(left[i]);await say(c,c.ans[left[i]],'smile');if(asked.length===3)break}
+    if(c.fawn)await say(c,'（临走前深深鞠了一躬）老师，不管结果如何，能被您面试都是我的荣幸！','smile');
+    if(c.conn)await say(null,'（面试结束时，你的手机震了一下。张副院长发来一个微笑的表情。）');}
+  const pk=await pickMany(`面试结束。选择要录取的学生（最多 ${quota} 人）：`,S.cands.map(c=>`${c.name}·${c.prov}·${c.score}分·${c.label}${S.mails.some(m=>m.cand===c)?'·📧来过信':''}`),quota);
+  const base=S.students.length;
+  const st=pk.map((k,j)=>{const c=S.cands[k];return {...c,aff:clamp(50+c.pre+(c.fawn?6:0)+Math.round(((S.praise||0)-40)/10)),mood:70,prog:0,seat:seatFor(base+j),shown:false,project:null,cohort:r2?2:1}});
+  S.students=S.students.concat(st);
+  for(let i=0;i<st.length;i++)for(let j=i+1;j<st.length;j++){const a=st[i],b=st[j];let v=rnd(41)-20;if(a.prov===b.prov)v+=25;if(a.fawn||b.fawn)v-=12;if(a.conn||b.conn)v-=12;S.rel[rk(a,b)]=v}
+  st.forEach(s=>chat(s.id,s.name,s));
+  await say(null,`你录取了：${st.map(s=>s.name).join('、')||'（无人）'}。${r2?'他们将在 9 月入学，成为你的第二届学生。':''}`);
+  const cs=st.find(s=>s.conn);
+  if(cs){S.connAdmitted=true;cs.revealed=true;S.favor+=2;await pmsg('lead',LEAD,`哈哈，${cs.name}的事多谢了！以后有什么需要尽管开口。对了，院里有笔配套经费，给你批了。`);stat('funds',10000,'经费');stat('rep',2,'声望')}
+  else{const cn=S.cands.find(c=>c.conn);S.leaderAngry=true;await pmsg('lead',LEAD,`……${cn.name}没录啊。行，你有原则。`);stat('rep',-6,'声望')}
+  const out=S.cands.filter((c,k)=>!pk.includes(k)&&!c.conn);
+  if(out.length){const o=pick(out);chat(o.id,o.name,o);await pmsg(o.id,o,'老师，谢谢您复试时的耐心。虽然没能进您的组，我会去调剂的，继续努力！');await preply(o.id,['加油，你会有好结果的！'])}}
+async function evMeet(){
+  S.students.forEach(s=>s.shown=true);
+  await say(null,'9月开学，新生报到。你的实验室第一次热闹了起来。');
+  chat('group',`课题组群（${S.students.length+1}）`,GROUP,true);
+  for(const s of S.students)await pmsg('group',s,fill(TR[s.trait].hello,s));
+  await preply('group',['欢迎大家！下午三点实验室开第一次组会。']);await sleep(400);
+  const k=await choose(ME,'第一次组会。看着几张年轻的面孔，你要给课题组定个调子：',['严格要求：每周组会汇报，早九晚九打卡','自由放养：有事找我，没事别找我','亦师亦友：科研要做好，生活也要过好']);
+  S.styleMul=[1.4,0.8,1.05][k];fxAll({aff:[-8,4,8][k],mood:[-10,5,5][k]});
+  await say(S.students[0],['（小声）……早九晚九？我的天。','好耶！老师真开明！','老师放心，我们会努力的！'][k],['sad','smile','smile'][k]);
+  const f=live().find(s=>s.fawn);
+  if(f){const i=await choose(f,'老师，组里的杂事交给我吧！报销、订会议室、通知大家，我来当联络人～',['好，就你了','大家轮流来吧'],'smile');
+    if(i===0){fx(f,{aff:5});S.favor+=1;await say(null,'散会后，你注意到有人看了'+f.name+'一眼，没说话。')}else fx(f,{aff:-2})}}
+async function evTeacherDay(){
+  await say(null,'9月10日，教师节。你的手机响个不停。');
+  for(const s of live()){await pmsg(s.id,s,fill(TR[s.trait].gift,s));const sp=s.fawn||s.conn;
+    const i=await preply(s.id,sp?['谢谢，那我就收下啦','太贵重了，心意领了，明天还给你']:['谢谢你，很用心，我很喜欢！','心意领了，以后把心思多放在科研上哈']);
+    if(sp){if(i===0){fx(s,{aff:6});S.favor+=2;stat('rep',s.conn?-5:-3,'声望')}else{fx(s,{aff:-3});stat('rep',3,'声望')}}else fx(s,i===0?{aff:6,mood:4}:{aff:1,prog:2});
+    await pmsg(s.id,s,i===0?'嘿嘿，老师喜欢就好！':'好的老师……')}}
+async function evMoon(){
+  await say(null,'中秋节到了。学生们大多没回家，实验室门口堆着学院发的月饼。');
+  for(const s of live())await pmsg('group',s,s.fawn?'老师中秋快乐～🥮 大家今晚要不要一起去吃火锅？我订位！':'老师中秋快乐！🥮');
+  const i=await preply('group',['🧧 发个群红包 ¥300','中秋快乐！今晚火锅我请！','中秋快乐，假期好好休息～','中秋快乐！放假回来交周报。'],['rp',null,null,null]);
+  const s0=live()[0];
+  if(i===0){stat('wallet',-300,'钱包');fxAll({aff:6,mood:5});for(const s of live())await pmsg('group',s,'谢谢老师！🧧')}
+  else if(i===1){stat('wallet',-600,'钱包');fxAll({aff:10,mood:8});await pmsg('group',s0,'哇！！老师万岁！！🎉')}
+  else if(i===2){fxAll({aff:2,mood:3});await pmsg('group',s0,'老师也中秋快乐！')}
+  else{fxAll({aff:-5,prog:3,mood:-6});await pmsg('group',s0,'……收到。')}}
+async function evTeam(){
+  const st=live();const org=st.find(s=>s.fawn)||pick(st);
+  await pmsg(org.id,org,'老师，周末组里搞个团建吧！我都问好了，就等您拍板～');
+  const i=await preply(org.id,['去烧烤！我出钱（¥800）','剧本杀吧（¥600）','你们去玩吧，我就不去了']);
+  if(i===2){fxAll({mood:4});await pmsg(org.id,org,'好吧……那我们自己去啦～');return}
+  stat('wallet',i?-600:-800,'钱包');fxAll({aff:5,mood:8});
+  await say(null,i?'剧本杀店里，大家玩得很投入。':'周末的江边烧烤，烟火气十足。');
+  if(st.length>1){const lone=[...st].sort((a,b)=>a.mood-b.mood)[0];
+    await say(null,`热闹之中，你注意到${lone.name}一个人坐在角落刷手机，不太说话。${org!==lone?`${org.name}正忙着给你递烤串、拍照发朋友圈。`:''}`);
+    const k=await choose(ME,'你要怎么做？',[`过去和${lone.name}聊聊`,'吃烤串，享受当下']);
+    if(k===0){fx(lone,{mood:12,aff:6});await say(lone,'……谢谢老师。其实我就是有点不习惯这种场合。','smile')}}}
+async function evPaper(){
+  const second=S.turn>10;
+  await say(null,second?'投稿季到了，学生们又交来了新的论文。':'学生们的小论文初稿陆续发来了。');
+  const st=live();const f=st.find(s=>s.fawn);
+  for(const s of (f?[f,...st.filter(x=>x!==f)]:st)){if(s.depressed)continue;await pmsg(s.id,s,TR[s.trait].paper+(s===f?' 我是第一个交的哦～':''));assignPaper(s,second?'投稿稿':'小论文')}
+  await say(null,'论文都在「📝 批改论文」里（L 键）。点击有问题的句子做修订批注、选问题类型，再打分退回。\n批得准，学生进步快；分数不公，学生会有情绪。');}
+async function evNewYear(){
+  await say(null,'春节到了，校园空了下来。你回了老家，手机又响了起来。');
+  if(S.leaderAngry){await pmsg('sec',SEC,'老师新年好……您申请的省基金这次没批下来，听说评审会上有人说了几句😥');stat('rep',-2,'声望')}
+  else{await pmsg('sec',SEC,'老师新年好！您申请的省自然科学基金批下来了，经费 2 万已经到账🎉');stat('funds',20000,'经费');stat('rep',5,'声望')}
+  for(const s of live())await pmsg('group',s,TR[s.trait].ny);
+  const i=await preply('group',['🧧 群里发个大红包 ¥800','新年快乐！大家好好陪陪家人～','新年快乐！开学前把文献综述交了。'],['rp',null,null]);
+  if(i===0){stat('wallet',-800,'钱包');fxAll({aff:8,mood:6});for(const s of live())await pmsg('group',s,'谢谢老师！新年大吉！🧧')}
+  else if(i===1)fxAll({aff:3,mood:5});else{fxAll({aff:-6,prog:4,mood:-8});await pmsg('group',live()[0],'……好的老师。')}}
+async function evStudy(){
+  const st=live().filter(s=>!s.depressed);if(!st.length)return randomEvent();
+  const s=[...st].sort((a,b)=>b.prog-a.prog)[0];const can=S.funds>=4000;
+  await pmsg(s.id,s,'老师！我投的摘要被一个全国学术会议接收了！7月在杭州，想去做口头报告，差旅大概 4000，可以去吗？🙏');
+  const i=await preply(s.id,[can?'去！从项目经费报销，好好讲':'去！经费不够，我自己掏钱给你报','可以去，但路费你自己想办法','不行，暑假留在实验室做实验']);
+  if(i===0){can?stat('funds',-4000,'经费'):stat('wallet',-4000,'钱包');fx(s,{aff:10,prog:12,mood:8});stat('rep',3,'声望');await pmsg(s.id,s,'谢谢老师！！我一定好好准备，给咱们组争光！')}
+  else if(i===1){fx(s,{aff:-6,prog:8});await pmsg(s.id,s,'……好的老师，我问问家里。')}
+  else{fx(s,{aff:-12,prog:3,mood:-10});await pmsg(s.id,s,'好吧……')}
+  const o=st.find(x=>x!==s);
+  if(o){await pmsg(o.id,o,'老师，我拿到了一家互联网大厂的暑期实习 offer，想去两个月……可以吗？');
+    const j=await preply(o.id,['去吧，多见见世面，论文别落下','实习等毕业再说，先把论文发了']);
+    if(j===0){fx(o,{aff:10,prog:-5,mood:8});await pmsg(o.id,o,'谢谢老师！我保证每周远程汇报！')}else{fx(o,{aff:-10,prog:6,mood:-8});await pmsg(o.id,o,'……好的。')}}}
+// ---------- extra scenes: 团建暗流 / 抢服务器 / 帮带孩子 / 散伙饭 ----------
+function pairBy(cmp){const st=live();let best=null;for(let i=0;i<st.length;i++)for(let j=i+1;j<st.length;j++){const v=rel(st[i],st[j]);if(!best||cmp(v,best[2]))best=[st[i],st[j],v]}return best}
+function outsider(){const st=live();let out=null,pa=0;for(const x of st){const o=st.filter(y=>y!==x);const avg=o.reduce((t,y)=>t+rel(x,y),0)/o.length;if(!out||avg<pa){out=x;pa=avg}}return out}
+async function evTeam2(){
+  const st=live();if(st.length<2)return randomEvent();
+  await say(null,'4月，春暖花开。你自掏腰包带课题组去郊外烧烤团建。表面上欢声笑语，空气里却有点微妙。');
+  stat('wallet',-600,'钱包');
+  const [a,b,v]=pairBy((x,y)=>x<y);
+  await say(null,`分工烤串时，${a.name}把木炭和签子往${b.name}面前一推：“你上次组会不是说我只会动嘴吗？那今天你来。”`);
+  await say(b,`……我说的是实话。上周的实验数据，不也是我帮你补的？`,'sad');
+  await say(null,'其他人低头翻着烤串，没人说话。烟雾里，所有人都在偷偷看你。');
+  const i=await choose(ME,`${a.name}和${b.name}之间火药味越来越浓（关系 ${v}）。你要：`,['打圆场：“今天不谈工作，谁烤得好吃谁说了算！”','把两人分别叫到一边，私下聊聊（精力 -1）','装没看见，继续烤你的鸡翅','当众批评：“团建都能吵，像什么样子！”']);
+  if(i===0){addRel(a,b,10);fxAll({mood:6});await say(a,'……行吧，那我负责烤，你负责吃。','smile');await say(null,`${b.name}愣了一下，接过了${a.name}递来的鸡翅。气氛缓和了一些，但心结还在。`)}
+  else if(i===1){if(S.energy>0){S.energy--;hud()}addRel(a,b,25);fx(a,{aff:5});fx(b,{aff:5});await say(a,'老师，其实我也知道自己拖了后腿……就是被当众说，有点下不来台。','sad');await say(b,'我也有不对，不该在组会上那么说。回头我跟TA道个歉。');await say(null,`回程的大巴上，你看到${a.name}和${b.name}分着同一副耳机。`)}
+  else if(i===2){addRel(a,b,-15);fx(a,{mood:-5});fx(b,{mood:-5});await say(null,`那天之后，${a.name}和${b.name}在实验室各戴各的耳机，连去饮水机打水都错开时间。`)}
+  else{addRel(a,b,5);fx(a,{aff:-6,mood:-8});fx(b,{aff:-6,mood:-8});await say(null,'两人都闭了嘴。剩下的半天，大家安静得像在开答辩会。')}
+  if(st.length>=3){
+    const out=outsider();const t=pick(st.filter(s=>s!==out));
+    await sleep(400);
+    await pmsg(t.id,t,`老师，有件事不知道该不该说……下午玩狼人杀分组，大家都不太愿意跟${out.name}一组，TA一个人坐在旁边刷了一下午手机。`);
+    const j=await preply(t.id,['谢谢你告诉我，我来想想办法','别在背后议论同门','小孩子闹别扭，过几天就好了']);
+    if(j===0){fx(t,{aff:4});for(const y of st)if(y!==out)addRel(out,y,8);fx(out,{mood:8,aff:6});await pmsg(out.id,out,'老师，您让我牵头下周的读书会……谢谢您。今天他们主动约我去吃饭了😊')}
+    else if(j===1){fx(t,{aff:-6,mood:-4});addRel(t,out,-6);await pmsg(t.id,t,'……好的老师，我只是怕TA心里难受。')}
+    else{fx(out,{mood:-12});await pmsg(out.id,out,'老师，我最近有点不太想来实验室。没什么事，就是有点累。')}}}
+async function evGPU(){
+  const st=live();if(st.length<2)return randomEvent();
+  const [a,b]=shuffle([...st]).slice(0,2);
+  await say(null,'12月，会议截稿前一周。实验室唯一一台 GPU 服务器的风扇转得像直升机。');
+  await pmsg(a.id,a,`老师，服务器被${b.name}占了整整三天，我的实验一直排不上队……截稿就剩一周了😭`);
+  await pmsg(b.id,b,`老师，${a.name}是不是跟您说服务器的事了？我的模型跑到一半，现在停就前功尽弃了！`);
+  const i=await preply(b.id,['按截稿时间排队，谁急谁先','你们俩自己协调','用课题经费再租一台云服务器（经费 -¥4000）']);
+  if(i===2&&S.funds>=4000){stat('funds',-4000,'经费');fx(a,{prog:5,aff:5});fx(b,{prog:5,aff:5});addRel(a,b,8);await say(null,'两台机器一起跑，实验室终于安静了。两人还互相分享了调参经验。')}
+  else if(i===0||i===2){if(i===2)await say(null,'经费不够了……只能排队。');fx(a,{prog:4,aff:3});fx(b,{prog:-2,aff:-5,mood:-6});addRel(a,b,-10);await pmsg(b.id,b,'……行，我停。')}
+  else{addRel(a,b,-20);fx(a,{mood:-6});fx(b,{mood:-6});await say(null,`第二天，你在服务器上看到一个新建的文件：「${b.name}_勿动_谁杀进程谁负责.txt」。`)}}
+async function evBabysit(){
+  const st=live();if(!st.length)return randomEvent();
+  await say(null,'周六早上七点，你爱人临时出差，幼儿园不开门，而你九点要参加一个重要的项目评审会。五岁的儿子乐乐抱着你的腿不撒手。');
+  const i=await choose(ME,'怎么办？',st.map(s=>`找${s.name}帮忙带半天（${TR[s.trait].tag}）`).concat(['花钱请临时保姆（¥400）','带着乐乐一起去评审会']));
+  if(i===st.length){stat('wallet',-400,'钱包');await say(null,'保姆阿姨很靠谱。你在评审会上专心答辩，项目顺利通过初审。');stat('funds',3000,'经费');return}
+  if(i>st.length){stat('rep',-3,'声望');await say(null,'评审会上，乐乐在后排大喊：“爸爸讲得好无聊！”全场哄堂大笑，评审专家的脸色不太好看。');return}
+  const s=st[i];
+  await preply(s.id,['周末打扰了，能不能来我家帮忙带半天孩子？我有个评审会走不开。']);
+  const low=s.aff<40;
+  const rep=low?'……好的老师。（我本来约了去图书馆的）':s.fawn?'没问题老师！我马上打车过去！老师的事就是我的事～':
+    ({honest:'行！我在家带大了弟弟妹妹，交给我！',genius:'可以啊老师，正好我带着Switch😎',cross:'好呀！我可以教他画画！🎨',diligent:'好的老师，我把文献带上，边看边陪他～'})[s.trait]||'好的老师，您放心去吧！';
+  await pmsg(s.id,s,rep);
+  stat('funds',3000,'经费');
+  await say(null,'评审会很顺利。你赶回家，推开门——');
+  if(low){fx(s,{aff:-4,mood:-8,prog:-3});await say(null,`乐乐哭花了脸，${s.name}一脸疲惫地坐在沙发上，手机里开着没看完的论文。`)}
+  else if(s.trait==='genius'){fx(s,{aff:6,mood:6,prog:-3});await say(null,`乐乐和${s.name}并排坐在电视前，已经连打了四个小时马里奥。乐乐：“爸爸！这个哥哥/姐姐比你厉害多了！”`)}
+  else{fx(s,{aff:8,mood:4,prog:-3});await say(null,`乐乐趴在${s.name}腿上睡着了，茶几上摆着一幅歪歪扭扭的画：「我和${s.name}」。`)}
+  const j=await choose(ME,`怎么感谢${s.name}？`,['发个 ¥300 红包','请TA吃顿好的（¥150）','说声谢谢就行，都是一家人']);
+  if(j===0){if(s.trait==='honest'){fx(s,{aff:8});await say(s,'老师，这钱我不能收。您平时那么照顾我，带半天孩子算啥！','smile')}else{stat('wallet',-300,'钱包');fx(s,{aff:5})}}
+  else if(j===1){stat('wallet',-150,'钱包');fx(s,{aff:6,mood:6})}
+  else{fx(s,{aff:low?-6:-2});if(low)await say(s,'……嗯，没事的老师。','sad')}
+  const others=st.filter(x=>x!==s);if(!others.length)return;
+  const o=pick(others);await sleep(400);
+  if(s.fawn)await say(null,`当晚，${s.name}发了条朋友圈：“给老师带娃的一天～乐乐说最喜欢我啦❤️”，还配了九张图。`);
+  await pmsg('group',o,`@${s.name} 周末去老师家啦？${s.fawn?'朋友圈都看到了哈哈哈':'听说乐乐可喜欢你了'}`);
+  await pmsg(o.id,o,`老师……下次家里需要帮忙也可以找我的。（最近大家私下都管${s.name}叫“皇亲国戚”了😅）`);
+  const k=await preply(o.id,['好啊，下次找你','带孩子是我的私事，跟学业评价无关，别多想','以后不麻烦学生了，是我考虑不周']);
+  if(k===0){fx(o,{aff:3});others.forEach(x=>addRel(x,s,-8));await say(null,'组里开始有人悄悄计算：谁去过老师家几次。')}
+  else if(k===1){fx(o,{aff:2});others.forEach(x=>addRel(x,s,-3))}
+  else{others.forEach(x=>{addRel(x,s,5);fx(x,{aff:3})});stat('rep',1,'声望')}}
+async function evFarewell(){
+  const st=live();if(st.length<2)return randomEvent();
+  await say(null,'5月，答辩前一个月。你在学校后门的小饭馆订了一桌“散伙饭”。三年的恩怨情仇，都在酒里了。');
+  const [a,b,v]=pairBy((x,y)=>x<y);
+  if(v<0){
+    await say(null,`酒过三巡，${a.name}端着杯子站了起来，看向${b.name}。全桌突然安静。`);
+    await say(a,`${b.name}……这三年，我跟你较了不少劲。说实话，你比我强。这杯我敬你。`);
+    const i=await choose(ME,`${b.name}还坐着没动。你：`,['轻轻碰一下${b.name}的杯子：“同门一场，不容易”'.replace('${b.name}',b.name),'不掺和，让他们自己来']);
+    if(i===0||rel(a,b)>-40){addRel(a,b,40);fxAll({mood:10});await say(b,'……你也挺强的。干了！','smile');await say(null,'那天晚上，他们勾肩搭背唱完了整首《朋友》。')}
+    else{addRel(a,b,-5);fx(a,{mood:-10});await say(null,`${b.name}只是抿了一口。${a.name}尴尬地坐下，后半场没再说话。`)}}
+  else{fxAll({mood:8});await say(null,'大家你一言我一语地回忆研一的第一次组会，笑成一团。')}
+  const fav=[...st].sort((x,y)=>y.aff-x.aff)[0];
+  await say(fav,fav.aff>=70?'老师，我敬您！要不是您，我可能早就退学了……这三年，谢谢您！':'老师，这三年辛苦您了，我敬您一杯。','smile');
+  stat('wallet',-800,'钱包');}
+async function evSign(){
+  const st=live();const req=st.find(s=>s.conn)||st.find(s=>s.fawn);
+  const victim=req&&[...st].filter(s=>s!==req).sort((a,b)=>b.prog-a.prog)[0];
+  if(!req||!victim)return randomEvent();
+  await pmsg(req.id,req,`老师，${victim.name}那篇论文快投了吧？我前期也帮着查过资料……能不能把我挂个二作？${req.conn?'我舅舅说评奖学金要用。':'我保证以后多帮TA干活～'}`);
+  const i=await preply(req.id,['行，加上吧','不行，谁做的工作谁署名',`你们俩自己商量吧`]);
+  if(i===0){fx(req,{aff:8});fx(victim,{aff:-10,mood:-18});addRel(req,victim,-30);S.favor+=3;if(req.conn)stat('rep',3,'声望');
+    await pmsg(victim.id,victim,`老师……我听说论文要加${req.name}的名字？那篇论文的实验都是我一个人通宵做的……算了，您定吧。`)}
+  else if(i===1){fx(req,{aff:-8});fx(victim,{aff:4});if(req.conn){stat('rep',-4,'声望');await pmsg('lead',LEAD,'听说你在署名的事上挺坚持原则啊。呵呵。')}else await pmsg(req.id,req,'……好的老师，是我考虑不周。')}
+  else{fx(victim,{mood:-8});addRel(req,victim,-15);await say(null,`第二天，你看到${victim.name}和${req.name}在走廊里谁也不理谁。`)}}
+async function evGrad(){
+  await say(null,'研三下学期，毕业设计进入冲刺阶段。实验室的灯每天亮到凌晨。');
+  for(const s of live().filter(x=>x.cohort!==2)){await pmsg(s.id,s,s.prog>=80?`老师，毕业论文初稿写完了（进度 ${s.prog}%），已经交到批改系统里了～`:s.prog>=50?`老师，毕业论文写了一大半（${s.prog}%），先交一版摘要给您看看……`:`老师……我的毕业论文才写了 ${s.prog}%，我好慌😭 能帮帮我吗？`);if(s.prog>=50)assignPaper(s,'毕业论文')}
+  await sleep(400);const st=live().filter(x=>x.cohort!==2);
+  const i=await choose(ME,'离答辩只剩三个月，你决定陪谁熬夜冲刺？',st.map(s=>`${s.name}（进度 ${s.prog}%）`).concat(['相信他们，各自加油']));
+  if(i<st.length){const s=st[i];fx(s,{prog:22,aff:8});await say(s,'老师陪我改到凌晨两点……我一定不辜负您！','smile');if(s.fawn||s.conn)S.favor+=2}else fxAll({prog:5});
+  await say(null,'别忘了在「📝 批改论文」里批改交上来的毕业论文。');}
+async function evDefense(){
+  const G=S.students.filter(x=>x.cohort!==2),K2=S.students.filter(x=>x.cohort===2&&x.shown);
+  await say(null,'6月，毕业答辩。会议室里坐满了答辩委员，你的第一届学生们依次走上讲台。'+(K2.length?`\n第二届的${K2.map(s=>s.name).join('、')}坐在后排，认真记着笔记。`:''));
+  const lines=[];
+  for(const s of G){let res,mood;
+    if(s.depressed){res='因病休学，未能参加答辩……';mood='sad';stat('rep',-6,'声望')}
+    else if(s.conn&&s.prog<50){res='论文质量一般，答辩委员看了看名单，又看了看副院长……最后还是通过了。';mood='smile';fxAll({mood:-5},s)}
+    else if(s.prog>=80){res='优秀毕业论文！';mood='smile';stat('rep',5,'声望')}
+    else if(s.prog>=50){res='顺利通过答辩，按时毕业。';mood='smile'}
+    else{res='论文没写完，只能延期毕业……';mood='sad';stat('rep',-5,'声望')}
+    await say(null,`${s.name} 的毕业论文进度 ${s.prog}%：${res}`);
+    await say(s,s.depressed?'（TA没有来。只在微信上发了一句：谢谢老师。）':s.aff>=75?'老师，谢谢您这三年的照顾。以后我会常回来看您的！':s.aff>=45?'老师，谢谢您的指导。':'……老师再见。',mood);
+    lines.push(`${s.name}（${s.prov}·${s.label}）：${res}　好感 ${s.aff} · 心情 ${s.mood}`)}
+  if(K2.length){const k=[...K2].sort((a,b)=>b.aff-a.aff)[0];await say(k,'师兄师姐都毕业了……老师，接下来就看我们的了！','smile')}
+  const n=Math.max(1,G.length),avg=G.reduce((a,s)=>a+s.aff,0)/n,delay=G.filter(s=>s.prog<50&&!s.conn).length,dep=G.filter(s=>s.depressed).length;
+  const title=dep?'学生休学，你上了学校的约谈名单':avg>=75&&!delay?'桃李满天下 · 学生心中的神仙导师':S.connAdmitted&&S.rep>=58?'八面玲珑 · 院里的红人':avg<40?'学生口中的「老板」':delay?'严师？还是放养？':'靠谱的好导师';saveLegacy(G);
+  S.ended=true;const m=$('msg');m.querySelector('h2').textContent='结局 · '+title;
+  m.querySelector('p').textContent=lines.join('\n')+(K2.length?`\n\n第二届（研二）：${K2.map(s=>`${s.name} 进度 ${s.prog}% · 好感 ${s.aff}`).join('；')}\n他们还要在你的课题组再读一年——未完待续。`:'')+`\n\n最终声望 ${S.rep} · 经费 ¥${S.funds} · 钱包 ¥${S.wallet}${S.labBoost?` · 服务器 ${Math.round(S.labBoost/0.25)} 台`:''}\n\n${legacyNote()}\n按 Enter 重新开始（考生会重新随机）`;m.hidden=false;}
+async function evAdvice(){const s=pick(live()),e=pick(REV);await pmsg(s.id,s,e.t);const i=await preply(s.id,e.o);fx(s,e.e[i]);await pmsg(s.id,s,'好的，谢谢老师！')}
+async function evOverhear(){const st=live();if(st.length<2)return evAdvice();
+  const fav=st.find(s=>s.conn)||st.find(s=>s.fawn)||[...st].sort((a,b)=>b.aff-a.aff)[0];
+  const others=st.filter(s=>s!==fav);const a=pick(others),b=others.find(x=>x!==a);
+  const lines=[`"凭什么${fav.name}天天不来实验室，好资源还都给TA？"`,`"${fav.name}又去老师办公室送东西了，真会来事。"`,`"你说老师是不是更喜欢${fav.name}？组会只夸TA一个。"`];
+  await say(null,`你走到实验室门口，听见${a.name}在小声对${b?b.name:'电话那头'}说：\n${pick(lines)}\n……看到你推门进来，大家立刻不说话了，低头敲键盘。`);
+  const i=await choose(ME,'你怎么做？',['假装什么都没听到','咳嗽一声，意味深长地看了一眼','召集大家开个会：组里资源公平分配，有意见当面提']);
+  if(i===0)a.mood=clamp(a.mood-3);else if(i===1)fx(a,{aff:-4,mood:-6});else{S.favor=0;others.forEach(s=>fx(s,{mood:6,aff:2}));fx(fav,{aff:-3})}
+  addRel(a,fav,-8)}
+async function evRecall(){const st=live();const s=[...st].sort((a,b)=>a.mood-b.mood)[0];
+  const t=pick(['老板今天又画饼了😅 下周估计又得通宵','救命，周报还没写，老板一会儿肯定又要问','有没有人知道老板几点走？想溜了']);
+  await pmsg(s.id,s,t);await sleep(500);chats[s.id].msgs.push({from:{name:'系统'},text:`「${s.name}」撤回了一条消息（但你已经看到了）`,kind:'sys'});renderPhone();
+  const i=await preply(s.id,['（假装没看见）','我看到了哦😊','最近确实辛苦大家了，周五下午放半天假']);
+  if(i===1){fx(s,{mood:-5,aff:-2});await pmsg(s.id,s,'啊啊啊老师对不起！！发错群了😭')}
+  else if(i===2){fxAll({mood:6,prog:-1});await pmsg(s.id,s,'谢谢老师！！！老师万岁！')}}
+async function evBadmouth(){const st=live();const f=st.find(s=>s.fawn);const others=st.filter(s=>s!==f);if(!f||!others.length)return evAdvice();
+  const t=[...others].sort((a,b)=>rel(f,a)-rel(f,b))[0];
+  const claim=pick([`${t.name}最近天天在宿舍打游戏，实验基本没动`,`${t.name}在外面接私活，还跟别人说是您安排的`,`${t.name}私下跟别人说您组会就会画饼`]);
+  const truth=Math.random()<(['genius','chill'].includes(t.trait)?0.6:0.25);
+  await pmsg(f.id,f,'老师，在吗？有件事我犹豫了好久……您千万别说是我说的。');
+  await pmsg(f.id,f,claim+'。我也是为组里好🥺');
+  const i=await preply(f.id,['谢谢你告诉我，我找TA谈谈','背后议论同门不好，以后别这样','我先私下了解一下情况（精力 -1）']);
+  if(i===0){fx(t,{aff:-8,mood:-10});fx(f,{aff:4});addRel(f,t,-10);S.favor+=1;await pmsg(t.id,t,truth?'对不起老师，我会改的……':'老师，我没有……是不是有人跟您说了什么？😢');if(!truth)addRel(f,t,-15)}
+  else if(i===1){fx(f,{aff:-5});await pmsg(f.id,f,'……好的老师，我知道了。')}
+  else{S.energy=Math.max(0,S.energy-1);hud();if(truth){await say(null,`你私下了解了一下：${f.name}说的……好像确有其事。`);fx(t,{prog:2,aff:-2})}
+    else{f.liar=true;await say(null,`你私下了解了一下：${t.name}其实一直在认真做实验。${f.name}说的并不属实。`);fx(f,{aff:-3})}}}
+async function evDepress(s){s.depTold=true;const cmp=live().find(x=>x!==s&&(x.fawn||x.conn))||live().find(x=>x!==s);
+  await say(null,'凌晨一点，你的手机亮了一下。');
+  await pmsg(s.id,s,`老师，在吗……我最近每天都睡不着，觉得自己什么都做不好。${cmp?`看到${cmp.name}什么都比我顺，老师好像也更看重TA……`:''}我是不是不适合读研？`);
+  const i=await preply(s.id,['别这么想。明天上午来办公室，我们好好聊聊','先休息一周，去学校心理中心聊聊，进度不急','读研都这样，坚持一下就好了']);
+  if(i===0){fx(s,{mood:25,aff:8});S.energy=Math.max(0,S.energy-1);hud();await pmsg(s.id,s,'嗯……谢谢老师。')}
+  else if(i===1){fx(s,{mood:20,prog:-3,aff:5});await pmsg(s.id,s,'谢谢老师，我会去的。')}
+  else{fx(s,{mood:-10,aff:-8});await pmsg(s.id,s,'……好的。');if(s.mood<20){s.depressed=true;await say(null,`两周后，${s.name}提交了休学申请，诊断书上写着「中度抑郁」。\n（多关心TA、让TA心情回升到 45 以上，TA才会回来。）`)}}}
+async function evFawn(f){await pmsg(f.id,f,pick(FAWNMSG));const i=await preply(f.id,['谢谢，有心了😊','不用这样，心思放在科研上就好']);
+  if(i===0){fx(f,{aff:4});S.favor+=1;await pmsg(f.id,f,'嘿嘿，能为老师做点事是我的荣幸～')}else{fx(f,{aff:-3,mood:-3});await pmsg(f.id,f,'好、好的老师……')}}
+async function randomEvent(){const st=live();if(!st.length)return say(null,'平静的一段时间过去了。');
+  const pool=[evAdvice,evOverhear,evRecall,evPraise];if((S.alumni||[]).some(a=>a.aff>=75||a.aff<40))pool.push(evAlumni);if(st.some(s=>s.fawn)&&st.length>1)pool.push(evBadmouth,evBadmouth);await pick(pool)()}
+async function dynamics(){if(S.ended)return;
+  const d=live().find(s=>s.mood<30&&!s.depTold&&!s.depressed);if(d)return evDepress(d);
+  const f=live().find(s=>s.fawn&&!s.depressed);if(f&&Math.random()<0.5)return evFawn(f);}
+async function nextTurn(){
+  S.turn++;S.energy=3;
+  for(const s of live()){const mf=s.depressed?0:s.mood<30?0.3:s.mood<50?0.7:1;
+    s.prog=clamp(s.prog+Math.round(s.abil*0.5*S.styleMul*mf*(1+(S.labBoost||0)))+(s.aff>=70?2:0));s.project=null;
+    if(!s.fawn&&!s.conn&&S.favor>0)s.mood=clamp(s.mood-Math.round(S.favor*2));
+    if(S.connAdmitted&&!s.conn&&Math.random()<0.3)s.mood=clamp(s.mood-3);
+    s.mood=clamp(s.mood+2);if(s.mood>=45){s.depTold=false;if(s.depressed){s.depressed=false;toast(`${s.name} 复学了`)}}}
+  const nL=live().length;if(nL){const pay=200*nL;S.funds+=500-pay;toast(`学院拨款 +¥500 · 助研津贴 -¥${pay}`);if(S.funds<0){live().forEach(s=>s.mood=clamp(s.mood-5));toast('经费赤字！津贴拖欠，全员心情 -5')}}
+  S.favor=Math.floor(S.favor*0.5);updPraise();
+  hud();await showDate(TL[S.turn].d);
+  const ev=TL[S.turn].ev;if(ev)await ev();else await randomEvent();
+  if(live().length&&!S.ended)await dynamics();if(!S.ended)await alumniTick();
+  S.goal=TL[S.turn].goal||DEF_GOAL;}
+async function deskMenu(){
+  const nx=TL[S.turn+1];if(!nx)return;
+  const up=S.papers.filter(p=>!p.done).length;
+  const i=await choose(null,`办公桌上的电脑。现在是「${TL[S.turn].d}」，精力 ${S.energy}/3。经费 ¥${S.funds} · 声望 ${S.rep}${up?`\n还有 ${up} 篇论文没批改。`:''}`,[`推进时间 → ${nx.d}`,'查看学生情况','💼 课题组经营（经费 / 声望 / 钱包的用处）','打开邮箱','算了']);
+  if(i===0)return nextTurn();
+  if(i===1)return say(null,S.students.length?S.students.map(s=>`${s.cohort===2?'[第二届] ':''}${s.name}（${s.prov}·${s.label}）：${s.shown?`好感 ${s.aff} · 心情 ${s.mood}${s.depressed?'（休学）':''} · 进度 ${s.prog}%`:'已录取，待入学'}`).join('\n'):'你还没有学生。');
+  if(i===2)return labMenu();
+  if(i===3)setTimeout(openMail,50);}
+async function talkStudent(s){
+  const u=k=>!!(s.done&&s.done[k]===S.turn);
+  const greet=s.depressed?'……老师。（TA看起来很憔悴）':s.aff>=75?'老师！我正想找您呢～':s.aff<35?'……老师好。':'老师好，我在看文献。';
+  const i=await choose(s,`${greet}\n【好感 ${s.aff}　心情 ${s.mood}　进度 ${s.prog}%　你的精力 ${S.energy}/3】`,
+    [u('guide')?'指导论文（本阶段已指导过）':`指导论文（精力 -1 · 进度约 +${3+s.abil}%）`,
+     u('push')?'再催一下（刚催过……）':'催一下进度（进度 +4 · 好感/心情 ↓）',
+     u('chat')?'再聊两句（本阶段已聊过）':'聊聊天，关心一下（不耗精力 · 好感/心情 ↑）',
+     '看看TA的资料','没事，你忙吧'],s.aff<35||s.mood<30?'sad':'normal');
+  if(i===0){if(u('guide'))return say(s,'老师，您上次指导的地方我还没改完呢，改完马上找您！\n（本阶段已经指导过了，推进时间后可以再指导）');
+    if(S.energy<1)return say(null,'你已经很累了。去办公桌的电脑前推进时间，恢复精力吧。');
+    S.energy--;hud();once(s,'guide');const r=fx(s,{prog:3+s.abil,aff:3,mood:2});if(s.fawn||s.conn)S.favor+=0.5;
+    await say(s,pick(['原来这里应该这样改！谢谢老师，我懂了！','老师一句话，我少走三个月弯路！','（疯狂记笔记）老师您慢点说，我录个音！','我这就回去把第三章重写……谢谢老师！'])+'\n'+r,'smile')}
+  else if(i===1){if(u('push')){const r=fx(s,{mood:-4,aff:-2});return say(s,'老师……您刚才已经催过了😣 我真的在赶了。\n'+r,'sad')}
+    once(s,'push');const r=fx(s,{prog:4,aff:-3,mood:-5});await say(s,'好、好的老师，我这周一定加快……\n'+r,'sad')}
+  else if(i===2){if(u('chat'))return say(s,pick(['哈哈，老师今天好闲呀～','（TA礼貌地笑了笑，又低头看起了文献）','老师，我得去盯实验啦，下次再聊！'])+'\n（本阶段已经聊过了，没有额外效果）');
+    once(s,'chat');const r=fx(s,s.depressed?{aff:6,mood:12}:{aff:5,mood:8});await say(s,pick(TR[s.trait].chat)+'\n'+r,'smile')}
+  else if(i===3)setTimeout(()=>{chat(s.id,s.name,s);curChat=s.id;phView='profile';openPhone()},50);}
+function front(){const d={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[P.dir];
+  const tx=Math.floor((P.x+8+d[0]*12)/T),ty=Math.floor((P.y+12+d[1]*12)/T);
+  const st=S.students.find(s=>s.shown&&s.seat[0]===tx&&s.seat[1]===ty);if(st)return{st};
+  const c=(MAP[ty]||'')[tx];return c&&'DSpT'.includes(c)?{c}:null}
+function interact(){const f=front();if(!f)return;
+  if(f.st)return run(()=>talkStudent(f.st));
+  if(f.c==='D')return run(deskMenu);
+  if(f.c==='S')return run(()=>say(null,'书架上摆满了专业书，还有往届师兄师姐的毕业论文，书脊上落了点灰。'));
+  if(f.c==='p')return run(()=>say(null,'一盆绿萝，长得比学生的论文进度还快。'));
+  if(f.c==='T')return run(()=>say(null,S.students.some(s=>s.shown)?'实验台上堆着电脑、草稿纸和喝了一半的奶茶。':'空荡荡的实验台，等着新生入驻。'));}
+function start(){S.started=true;initLegacy();S.cands=genCands();$('msg').hidden=true;run(async()=>{await evIntro();await legacyIntro();await evExam();S.goal=TL[0].goal})}
+
+// ---------- world (from v1) ----------
+function blocked(x,y){for(const [a,b] of [[x+3,y+10],[x+12,y+10],[x+3,y+15],[x+12,y+15]]){const tx=Math.floor(a/T),ty=Math.floor(b/T);
+  if(ty<0||ty>=12||tx<0||tx>=20||SOLID.includes(MAP[ty][tx]))return true;
+  if(S.students.some(s=>s.shown&&s.seat[0]===tx&&s.seat[1]===ty))return true}return false}
+function update(){frame++;P.moving=false;if(!S.started||S.busy||S.ended||S.panel)return;
+  const dx=(keys.r?1:0)-(keys.l?1:0),dy=(keys.d?1:0)-(keys.u?1:0);if(!dx&&!dy)return;
+  const sp=1.3/(dx&&dy?1.41:1);P.moving=true;if(dx)P.dir=dx>0?'right':'left';else P.dir=dy>0?'down':'up';
+  if(!blocked(P.x+dx*sp,P.y))P.x+=dx*sp;if(!blocked(P.x,P.y+dy*sp))P.y+=dy*sp}
+function person(x,y,c,dir,step){const o=Math.round(x),p=Math.round(y);
+  R(o+3,p+14,10,2,'#0003');R(o+5,p+11,2,step?3:4,'#3a3a4a');R(o+9,p+11,2,step?4:3,'#3a3a4a');
+  if(c.girl&&dir!=='up'){R(o+3,p+2,2,8,c.hair);R(o+11,p+2,2,8,c.hair)}
+  R(o+4,p+7,8,5,c.shirt);R(o+3,p+8,1,3,c.shirt);R(o+12,p+8,1,3,c.shirt);R(o+3,p+11,1,1,c.skin);R(o+12,p+11,1,1,c.skin);
+  R(o+4,p+1,8,7,c.skin);R(o+4,p,8,3,c.hair);R(o+3,p+1,1,4,c.hair);R(o+12,p+1,1,4,c.hair);
+  if(dir==='up'){R(o+4,p,8,7,c.hair);if(c.girl)R(o+3,p+1,10,9,c.hair);return}
+  if(dir==='down'){R(o+5,p+4,2,2,'#222');R(o+9,p+4,2,2,'#222');if(c.glasses)R(o+4,p+4,8,1,'#333')}
+  else if(dir==='left'){R(o+4,p+1,3,2,c.hair);R(o+5,p+4,2,2,'#222')}else{R(o+9,p+1,3,2,c.hair);R(o+9,p+4,2,2,'#222')}}
+function drawWorld(){
+  for(let y=0;y<12;y++)for(let x=0;x<20;x++){const c=MAP[y][x],px=x*T,py=y*T;
+    if(c==='#'){if(y<2){R(px,py,16,16,'#e9d6a8');for(let k=3;k<16;k+=6)R(px+k,py,1,16,'#dcc690');
+        if(y===0)R(px,py,16,3,'#6a3a1a');if(y===1){R(px,py+11,16,5,'#8a5a32');R(px,py+11,16,1,'#b07a48')}}
+      else{R(px,py,16,16,'#6a3a1a');R(px+1,py+1,14,14,'#8a5a32');R(px+1,py+1,14,2,'#a8703c')}continue}
+    if(x<=8){R(px,py,16,16,'#d9a66a');R(px,py+5,16,1,'#c08a50');R(px,py+11,16,1,'#c08a50');
+      R(px+(x*7+y*3)%14,py,1,5,'#c08a50');R(px+(x*5+y*11)%14,py+6,1,5,'#c08a50');R(px+(x*3+y*7)%14,py+12,1,4,'#c08a50')}
+    else{R(px,py,16,16,'#cfd5dc');R(px,py,16,1,'#b4bcc6');R(px,py,1,16,'#b4bcc6')}}
+  for(const wx of [2,5,10,18]){const x=wx*T;R(x+1,4,14,22,'#5a3a20');R(x+2,5,12,20,'#9ad8f8');R(x+2,5,12,6,'#c4ecff');R(x+7,5,1,20,'#5a3a20');R(x+2,14,12,1,'#5a3a20')}
+  R(12*T+2,5,58,20,'#777');R(12*T+3,6,56,18,'#fafafa');R(12*T+8,10,20,1,'#36c');R(12*T+8,14,30,1,'#36c');R(12*T+34,9,14,8,'#d44');R(12*T+40,18,12,1,'#3a3');
+  R(7*T+3,6,10,13,'#fff');R(7*T+3,6,10,3,'#d33');R(7*T+5,11,6,1,'#999');R(7*T+5,14,6,1,'#999');
+  R(32,96,64,32,'#a83a3a');R(34,98,60,28,'#d8a040');R(36,100,56,24,'#a83a3a');for(let k=0;k<6;k++)R(42+k*9,110,3,3,'#e8c060');
+  R(0,22,32,26,'#5a3010');R(1,24,30,22,'#7a4a24');const BC=['#c33','#36a','#3a5','#da3','#839'];
+  for(let i=0;i<7;i++){R(2+i*4,25,3,9,BC[i%5]);R(2+i*4,37,3,8,BC[(i+2)%5])}R(1,34,30,2,'#5a3010');
+  R(32,48,48,10,'#b07a40');R(32,58,48,20,'#8a5a2c');R(34,60,20,7,'#7a4a24');R(34,68,20,7,'#7a4a24');R(43,63,2,1,'#e8c060');R(43,71,2,1,'#e8c060');
+  R(50,36,18,13,'#2a2a2a');R(52,38,14,9,frame%120<60?'#7ad0f0':'#8ae0ff');R(57,49,4,2,'#2a2a2a');R(36,50,9,6,'#fff');R(70,49,4,5,'#e05050');
+  R(52,82,14,8,'#4a3a6a');R(54,78,10,5,'#5a4a7a');
+  for(const [tx,ty] of [[10,3],[14,3],[10,8],[14,8]]){const x=tx*T,y=ty*T;R(x,y+2,48,12,'#eceae0');R(x,y+13,48,3,'#a0a098');
+    R(x+6,y-5,12,9,'#2a2a2a');R(x+7,y-4,10,6,'#8ad');R(x+30,y-5,12,9,'#2a2a2a');R(x+31,y-4,10,6,'#8ad');R(x+22,y+5,5,5,'#fff');R(x+23,y+4,3,2,'#c88')}
+  for(let y=0;y<12;y++)for(let x=0;x<20;x++)if(MAP[y][x]==='p'){const px=x*T,py=y*T;
+    R(px+4,py+9,8,6,'#b0603a');R(px+4,py+9,8,1,'#d0805a');R(px+3,py+2,10,8,'#4a9a3a');R(px+5,py,6,4,'#5ab04a');R(px+2,py+5,3,3,'#3a8a2a');R(px+11,py+4,3,3,'#3a8a2a')}
+  const ents=[{y:P.y,f:()=>person(P.x,P.y,ME,P.dir,P.moving&&((frame>>3)&1))}];
+  S.students.forEach((s,i)=>{if(s.shown)ents.push({y:s.seat[1]*T,f:()=>{const x=s.seat[0]*T,y=s.seat[1]*T-1-(((frame>>5)+i)&1);person(x,y,s,'down',0);
+    if(s.depressed||s.mood<30){R(x+7,y-7,2,3,'#5af');R(x+6,y-5,4,2,'#5af')}else if(s.aff>=80){R(x+6,y-6,2,2,'#e44');R(x+9,y-6,2,2,'#e44');R(x+6,y-5,5,2,'#e44');R(x+7,y-3,3,1,'#e44')}}})});
+  ents.sort((a,b)=>a.y-b.y).forEach(e=>e.f());
+  if(S.started&&!S.busy&&!S.ended&&front()){const x=Math.round(P.x)+4,y=Math.round(P.y)-10;R(x,y,9,9,'#fff');R(x,y+9,9,1,'#0005');g.fillStyle='#6a3a1a';g.font='bold 8px monospace';g.fillText('E',x+2,y+8)}
+}
+
+const KM={ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r',ArrowUp:'u',KeyW:'u',ArrowDown:'d',KeyS:'d'};
+addEventListener('keydown',e=>{
+  if(e.target.closest&&e.target.closest('textarea,input'))return;
+  if(!S.started){if(e.code==='Enter'||e.code==='Space'||KM[e.code]){e.preventDefault();start()}return}
+  if(S.ended){if(e.code==='Enter'){e.preventDefault();location.reload()}return}
+  if(S.panel){if(e.code==='Escape'||(e.code==='KeyM'&&S.panel==='mail')||(e.code==='KeyL'&&S.panel==='paper')){e.preventDefault();closePanels()}return}
+  const k=KM[e.code];if(k){keys[k]=true;e.preventDefault();return}
+  if(/^(Digit|Numpad)[0-9]$/.test(e.code)){const dg=+e.code.slice(-1),i=dg===0?9:dg-1;
+    if(pickState&&i<pickState.n){e.preventDefault();pickState.pick(i)}
+    else if(chipState&&phoneOpen&&curChat===chipState.id&&i<chipState.opts.length){e.preventDefault();pickChip(i)}return}
+  if(e.code==='Space'||e.code==='Enter'||e.code==='KeyE'){e.preventDefault();if(S.busy)advance();else interact();return}
+  if(e.code==='KeyP'||e.code==='Tab'){e.preventDefault();phoneOpen?closePhone():openPhone();return}
+  if(e.code==='KeyM'){e.preventDefault();openMail();return}
+  if(e.code==='KeyL'){e.preventDefault();openPapers();return}
+  if(e.code==='Escape'&&phoneOpen)closePhone();});
+addEventListener('keyup',e=>{const k=KM[e.code];if(k)keys[k]=false});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
+stage.addEventListener('mousedown',e=>{if(e.target===cv&&document.activeElement&&/TEXTAREA|INPUT/.test(document.activeElement.tagName))document.activeElement.blur();if(!S.started)start()});
+function fit(){const w=stage.clientWidth,h=stage.clientHeight,s=Math.max(0.5,Math.min(w/VW,h/VH));cv.style.width=Math.floor(VW*s)+'px';cv.style.height=Math.floor(VH*s)+'px'}
+new ResizeObserver(fit).observe(stage);fit();hud();
+let last=performance.now(),acc=0;
+function loop(now){acc+=Math.min(100,now-last);last=now;while(acc>=1000/60){update();acc-=1000/60}drawWorld();if(frame%10===0)hud();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+
+// ===================== CHAT (talks to Fibona) =====================
+
+
+
+// ===== patch 8 =====
+const LEG_KEY='yantu_legacy_v1';
+function legLoad(){try{return JSON.parse(localStorage.getItem(LEG_KEY)||'null')}catch(e){return null}}
+function initLegacy(){const L=legLoad();S.run=((L&&L.runs)||0)+1;
+  if(L&&typeof L.praise==='number'){S.praise=Math.round(L.praise*0.6)}else S.praise=Math.floor(Math.random()*16);
+  S.alumni=(L&&Array.isArray(L.alumni)?L.alumni:[]).slice(-12);S.alGreet={};hud()}
+async function legacyIntro(){
+  if((S.run||1)<2)return say(null,`你是一位刚入职的青年导师，学生好评率从 ${S.praise}% 起步——口碑要靠自己一点点攒。\n（好评率会影响报考学生的素质、新生对你的第一印象，以及各种随机事件。）`);
+  await say(null,`第 ${S.run} 周目。上一轮结档时你的学生好评率是 ${(legLoad()||{}).praise}%，打六折继承：本轮从 ${S.praise}% 起步。${S.alumni.length?`\n你已经有 ${S.alumni.length} 位毕业生了，他们偶尔会联系你。`:''}`)}
+function praiseAdd(n){const b=S.praise||0;S.praise=clamp(b+n);const d=S.praise-b;if(d)toast(`学生好评率 ${d>0?'+':''}${d}%`);hud()}
+function updPraise(){const st=live().filter(s=>!s.depressed);if(!st.length)return;
+  const a=st.reduce((x,s)=>x+s.aff,0)/st.length,m=st.reduce((x,s)=>x+s.mood,0)/st.length,t=a*0.6+m*0.4,b=S.praise||0;
+  praiseAdd(Math.round((t-b)*0.15)-(live().some(s=>s.depressed)?3:0))}
+function applyQuality(){const q=S.praise||0,hard=S.examDiff>=4,de=hard?(q>=50?1:-1):0;
+  const am=1+(q-40)/200+de*0.08+S.examOpen*0.02,rb=Math.round((q-40)*0.3+de*8+(S.praiseBoost||0));
+  S.cands.forEach(c=>{if(c.q8)return;c.q8=1;if(typeof c.raw==='number')c.raw+=rb;if(typeof c.abil==='number')c.abil=Math.max(1,Math.round(c.abil*am))});
+  S.praiseBoost=0;
+  return q>=70?(hard?'老师，您口碑好、题又难，今年敢报您的都是硬茬子——生源质量明显比往年高！':'老师，您在学生里口碑很好，今年报您方向的考生质量不错～')
+    :q>=40?(hard?'今年题偏难，不过冲着您来的考生也不少。':'今年报考情况正常，生源中规中矩。')
+    :(hard?'老师……网上评价一般、题又难，好些尖子生转报别的老师了，报考的人素质参差不齐😥':'老师，网上的导师评价有点一般，今年报考的考生整体偏弱一些。')}
+async function evPraise(){const q=S.praise||0,s=pick(live());
+  if(q>=80){if(Math.random()<0.5){await say(null,`「导师评价网」上，有人给你写了一篇长评：“${pick(['组会不画饼，改论文比我自己还认真','经费大方，从不拖津贴，还请喝奶茶','心理状态不好的时候，老师比谁都上心'])}”，点赞已经 2000+。`);
+      const i=await choose(ME,'你看到了这篇帖子：',['悄悄点了个赞（好评率 +1）','转发朋友圈：“谢谢同学们”（声望 +3）','截图发课题组群，激励一下大家（全员心情 +5）']);
+      if(i===0)praiseAdd(1);else if(i===1)stat('rep',3,'声望');else fxAll({mood:5,aff:2})}
+    else{await pmsg('sec',SEC,'老师，外校好几个优秀本科生在打听您明年招不招人，说是慕名而来🌟');S.praiseBoost=(S.praiseBoost||0)+8;stat('rep',2,'声望');await preply('sec',['招！欢迎报考。'])}}
+  else if(q>=55){await say(null,`研究生院在做年度「我心目中的好导师」评选，${s.name}偷偷给你投了一票，你进了候选名单。`);
+    const i=await choose(ME,'学院让你写一段候选感言：',['认真写一段，感谢学生（精力 -1）','让学生帮忙写（TA进度 -2）','婉拒，不搞这些']);
+    if(i===0){S.energy=Math.max(0,S.energy-1);hud();stat('rep',2,'声望');praiseAdd(2)}else if(i===1){fx(s,{prog:-2,aff:-3});praiseAdd(-2)}else fx(s,{aff:1})}
+  else if(q>=30){await say(null,`「导师评价网」上出现了一条关于你的中评：“人不坏，就是${pick(['组会太长','回消息太慢','经常临时加任务','没什么经费'])}。”`);
+    const i=await choose(ME,'你怎么回应？',['组会上主动问大家有什么意见','让王秘书联系网站删帖','无视']);
+    if(i===0){fxAll({mood:4,aff:3});praiseAdd(4)}else if(i===1){praiseAdd(-6);stat('rep',-2,'声望');await say(null,'删帖的事不知怎么传了出去，评论区更热闹了……')}}
+  else{await say(null,`一篇《避雷！这位导师……》的帖子在考研论坛火了，楼里有人说得有鼻子有眼。\n${s.name}小声说：“老师，不是我发的……”`);
+    const i=await choose(ME,'你怎么办？',['在组里开诚布公：哪里做得不好我改','追查到底是谁发的','发声明：纯属造谣，保留追究权利']);
+    if(i===0){fxAll({mood:6,aff:5});praiseAdd(6)}else if(i===1){fxAll({mood:-8,aff:-5});praiseAdd(-5)}else{stat('rep',-3,'声望');praiseAdd(-3)}}}
+function alWho(a){return Object.assign({},a,{id:'al_'+a.name})}
+async function alumniTick(){const al=S.alumni||[];if(!al.length)return;
+  const d=TL[S.turn].d,fest=/9月/.test(d)?'教师节':/12月|1月|2月/.test(d)?'新年':null;
+  if(!fest&&Math.random()>0.25)return;S.alGreet=S.alGreet||{};const key=fest||('t'+S.turn);
+  const cand=al.filter(a=>a.aff>=45&&!S.alGreet[a.name+key]);if(!cand.length)return;
+  const a=pick(cand),w=alWho(a);S.alGreet[a.name+key]=1;chat(w.id,a.name+'（已毕业）',w);
+  const hi=a.aff>=75;
+  const t=fest==='教师节'?(hi?'老师，教师节快乐！🌹 前几天跟同事聊起读研那几年，还是觉得遇到您是最幸运的事。':'老师教师节快乐！')
+    :fest==='新年'?(hi?'老师新年快乐！🧧 今年回老家给您带了点特产，过完年给您送到办公室～':'老师新年快乐，万事如意！')
+    :(hi?`老师，${pick(['我们单位在招人，有合适的师弟师妹可以推荐给我','我发了篇论文，致谢里又写了您','路过学校，看到实验楼还是老样子'])}～`:'老师最近还好吗？');
+  await pmsg(w.id,w,t);await preply(w.id,hi?['谢谢！有空常回来看看','好的，你也照顾好自己']:['谢谢，你也是～']);
+  if(hi)praiseAdd(1)}
+async function evAlumni(){const al=S.alumni||[],hi=al.filter(a=>a.aff>=75),lo=al.filter(a=>a.aff<40);
+  if(hi.length&&(!lo.length||Math.random()<0.75)){const a=alWho(pick(hi));
+    await say(null,`实验室的门被推开——是已经毕业的${a.name}！TA拎着一大袋水果回来看你了。`);
+    await say(a,pick(['老师！路过学校，就想回来看看您。这实验室一点都没变～','老师，我工作挺顺利的，多亏您当年逼我把论文改了八遍😂']),'smile');
+    const i=await choose(ME,`要不要请${a.name}给师弟师妹们讲讲？`,['请TA给大家分享经验（全员进度 +3、心情 +4）','带TA去食堂吃顿饭叙叙旧（钱包 -¥100，好评率 +2）','聊几句就让TA去忙吧']);
+    if(i===0){fxAll({prog:3,mood:4});await say(a,'师弟师妹们，听老师的，准没错！','smile')}else if(i===1){S.wallet-=100;hud();praiseAdd(2)}}
+  else if(lo.length){const a=alWho(pick(lo));
+    await say(null,`有学生转给你一张朋友圈截图：已经毕业的${a.name}在吐槽读研经历——“${pick(['三年就是给老板打工','毕业那天是我最开心的一天','劝大家选导师一定要擦亮眼睛'])}”。`);
+    const i=await choose(ME,'你怎么做？',['私信TA，诚恳道个歉','当没看到','在组里说：毕业了还说老师坏话，人品有问题']);
+    if(i===0){praiseAdd(2);await say(null,`过了很久，${a.name}回了一句：“……都过去了，老师保重。”`)}else if(i===2){fxAll({mood:-5,aff:-3});praiseAdd(-4)}else praiseAdd(-1)}}
+function saveLegacy(G){const n=G.length||1,avg=G.reduce((x,s)=>x+s.aff,0)/n;S.praiseEnd=clamp(Math.round((S.praise||0)*0.6+avg*0.4));
+  const L=legLoad()||{},keep=s=>{const o={};for(const k in s){const v=s[k];if(['string','number','boolean'].includes(typeof v))o[k]=v}o.run=S.run||1;return o};
+  const al=(L.alumni||[]).concat(G.filter(s=>!s.depressed).map(keep)).slice(-12);
+  try{localStorage.setItem(LEG_KEY,JSON.stringify({runs:S.run||1,praise:S.praiseEnd,alumni:al}))}catch(e){}}
+function legacyNote(){return `结档学生好评率 ${S.praiseEnd}%（下周目打六折继承，起步 ${Math.round(S.praiseEnd*0.6)}%）· 本届毕业生会在下周目里联系你`}
+
+/* ===== 存档 / 读档 (yantu_save_v1) ===== */
+const SAVE_KEY='yantu_save_v1';
+function saveConsts(){const c={ME,SEC,LEAD,GROUP};
+  try{for(const k in TR)c['TR.'+k]=TR[k]}catch(e){}
+  try{PROJ.forEach((p,i)=>c['PROJ.'+i]=p)}catch(e){}
+  try{SEATS.forEach((p,i)=>c['SEAT.'+i]=p)}catch(e){}
+  try{PAPERS.forEach((p,i)=>c['PAP.'+i]=p)}catch(e){}
+  return c}
+function encGraph(root){const cr=new Map(Object.entries(saveConsts()).map(([k,v])=>[v,k])),seen=new Map();
+  const enc=v=>{if(v===undefined||typeof v==='function'||typeof v==='symbol')return undefined;
+    if(v===null||typeof v!=='object')return v;
+    if(cr.has(v))return{$c:cr.get(v)};if(seen.has(v))return{$r:seen.get(v)};
+    if(typeof Node!=='undefined'&&v instanceof Node)return null;
+    const id=seen.size;seen.set(v,id);
+    if(v instanceof Set)return{$i:id,$s:[...v].map(enc)};
+    if(v instanceof Map)return{$i:id,$m:[...v].map(([k,x])=>[enc(k),enc(x)])};
+    if(Array.isArray(v))return{$i:id,$a:v.map(x=>{const e=enc(x);return e===undefined?null:e})};
+    const o={};for(const k of Object.keys(v)){const e=enc(v[k]);if(e!==undefined)o[k]=e}return{$i:id,$o:o}};
+  return enc(root)}
+function decGraph(x){const C=saveConsts(),tbl=[];
+  const dec=v=>{if(v===null||typeof v!=='object')return v;
+    if(Array.isArray(v))return v.map(dec);
+    if('$c' in v)return C[v.$c];if('$r' in v)return tbl[v.$r];
+    if('$s' in v){const s=new Set();tbl[v.$i]=s;v.$s.forEach(e=>s.add(dec(e)));return s}
+    if('$m' in v){const m=new Map();tbl[v.$i]=m;v.$m.forEach(([k,e])=>m.set(dec(k),dec(e)));return m}
+    if('$a' in v){const a=[];tbl[v.$i]=a;v.$a.forEach(e=>a.push(dec(e)));return a}
+    if('$o' in v){const o={};tbl[v.$i]=o;for(const k in v.$o)o[k]=dec(v.$o[k]);return o}
+    return v};
+  return dec(x)}
+function canSave(){if(!S.started)return'游戏还没开始';if(S.ended)return'本局已结束';
+  if(S.busy||!$('dlg').hidden)return'对话/事件进行中，结束后再存档';return''}
+function readSave(){try{const raw=localStorage.getItem(SAVE_KEY);return raw?JSON.parse(raw):null}catch(e){return null}}
+function updSaveUI(){const d=readSave();const lb=$('loadbtn');
+  if(lb)lb.title=d?`存档：${d.date}（${new Date(d.t).toLocaleString()}）`:'暂无存档';
+  const sb=$('msgload');if(sb){sb.hidden=!d;if(d)sb.textContent=`📂 读取存档（${d.date}）`}}
+function doSave(){const why=canSave();if(why){toast('⚠️ '+why);return}
+  try{const data={v:1,t:Date.now(),date:TL[S.turn].d,
+      g:encGraph({S,chats,P:{x:P.x,y:P.y,dir:P.dir},clock,curChat})};
+    localStorage.setItem(SAVE_KEY,JSON.stringify(data));toast('💾 已存档：'+data.date);updSaveUI()}
+  catch(e){console.error(e);toast('存档失败：'+e.message)}}
+function doLoad(){if(S.busy){toast('⚠️ 事件进行中，稍后再读档');return}
+  const data=readSave();if(!data){toast('没有找到存档');return}
+  if(S.started&&!S.ended&&!confirm(`读取存档（${data.date}）将覆盖当前进度，确定吗？`))return;
+  try{const g=decGraph(data.g);if(!g||!g.S)throw new Error('存档数据不完整');
+    for(const k of Object.keys(S))delete S[k];Object.assign(S,g.S);
+    if(!(S.usedPapers instanceof Set))S.usedPapers=new Set(S.usedPapers||[]);
+    S.busy=false;S.panel=null;S.started=true;
+    for(const k of Object.keys(chats))delete chats[k];Object.assign(chats,g.chats||{});
+    Object.assign(P,g.P||{});P.moving=false;for(const k in keys)keys[k]=false;
+    clock=g.clock||0;curChat=g.curChat??null;
+    curMail=null;curPaper=null;chipState=null;phView='chat';typingWho=null;projFor=null;pickState=null;adv=null;typing=null;
+    ['mail','paper','phone','dlg'].forEach(id=>{const e=$(id);if(e)e.hidden=true});phoneOpen=false;$('msg').hidden=true;
+    if($('goal'))$('goal').textContent=S.goal||'—';
+    hud();renderPhone();toast('📂 已读档：'+data.date)}
+  catch(e){console.error(e);toast('读档失败：'+e.message)}}
+$('savebtn').onclick=e=>{e.stopPropagation();e.currentTarget.blur();doSave()};
+$('loadbtn').onclick=e=>{e.stopPropagation();e.currentTarget.blur();doLoad()};
+['mousedown','pointerdown','touchstart','keydown'].forEach(ev=>$('msgload').addEventListener(ev,e=>e.stopPropagation()));
+$('msgload').addEventListener('click',e=>{e.stopPropagation();e.preventDefault();e.currentTarget.blur();doLoad()});
+updSaveUI();
+/* ===== end 存档 ===== */
+const log=document.getElementById('log'), statusLine=document.getElementById('status'),
+      form=document.getElementById('form'), text=document.getElementById('text'), stop=document.getElementById('stop');
+let shown=0, socket, current=['Ready',false], sending; const streams=new Map(); let since=Date.now();
+function setStatus(label,busy){ if(label!==current[0]) since=Date.now(); current=[label,busy];
+  statusLine.textContent=label; statusLine.classList.toggle('busy',busy); stop.hidden=!busy }
+setInterval(()=>{const s=Math.round((Date.now()-since)/1000);
+  if(socket?.readyState===WebSocket.OPEN&&current[1]&&s>=10) statusLine.textContent=`${current[0].replace(/\.\.\.$/,'')}, ${s}s`},1000);
+function add(kind,body){const lastEl=log.lastElementChild; let div;
+  if(kind==='out'&&lastEl&&lastEl.className==='out'){div=lastEl;div.textContent+=body}
+  else{div=document.createElement('div');div.className=kind;div.textContent=body;log.append(div)} return div}
+function fromUser(m){ if(sending&&sending.textContent===m.trim()){sending.classList.remove('sending');sending=undefined} else add('user',m); setStatus('Working...',true)}
+function show(ev,stream){ switch(ev.type){
+  case 'TaskStarted': return fromUser(ev.task);
+  case 'InputReceived': return fromUser(ev.text);
+  case 'InputRequested': add('ask',ev.prompt); return setStatus('Waiting for you',false);
+  case 'ModelStarted': return setStatus('Thinking...',true);
+  case 'ModelDelta': if(ev.kind!=='text') return; if(stream&&stream.div) stream.div.textContent=ev.text; else add('say',ev.text); return;
+  case 'CellStarted': add('step',`Step ${ev.number}: ${ev.summary}`); return setStatus(`Running step ${ev.number}: ${ev.summary}`,true);
+  case 'CellOutput': return add('out',ev.text);
+  case 'CellFinished': return ev.error&&add('error',ev.error);
+  case 'TaskFinished': if(ev.error) add('error',ev.error);
+    if(ev.status==='done') return setStatus('Done',false); if(ev.status==='interrupted') return setStatus('Stopped',false);
+    return setStatus('Something went wrong',false);
+}}
+function showLive(lines){ for(const line of lines){ const piece=JSON.parse(line); if(piece.seq<=shown) continue;
+  let st=streams.get(piece.seq); if(!st){st={parts:[],div:piece.kind==='text'?add('say',''):undefined};streams.set(piece.seq,st)}
+  if(piece.part<st.parts.length) continue; st.parts.push(piece.text); if(st.div) st.div.textContent=st.parts.join('');
+  if(piece.kind==='reasoning') setStatus('Thinking...',true); if(piece.kind==='tool_call') setStatus('Writing the next step...',true)}}
+function connect(){ const scheme=location.protocol==='https:'?'wss':'ws';
+  socket=new WebSocket(`${scheme}://${location.host}/_fibona/api/pty?cols=100&rows=30&after=${shown}`);
+  socket.onopen=()=>setStatus(...current);
+  socket.onmessage=({data})=>{ if(typeof data!=='string') return; const m=JSON.parse(data);
+    const stick=log.scrollHeight-log.scrollTop-log.clientHeight<40;
+    if(m.t==='events'){ m.lines.forEach((line,i)=>{const seq=m.from+i; if(seq<=shown) return; shown=seq; show(JSON.parse(line),streams.get(seq)); streams.delete(seq)}) }
+    else if(m.t==='live') showLive(m.lines);
+    else if(m.t==='reset'){ log.replaceChildren(); streams.clear(); shown=0; socket.close() }
+    if(stick) log.scrollTop=log.scrollHeight };
+  socket.onclose=e=>{ if(e.code===4401) return location.reload(); statusLine.textContent='Reconnecting...';
+    statusLine.classList.remove('busy'); stop.hidden=true; setTimeout(connect,1000) } }
+form.onsubmit=e=>{ e.preventDefault(); const m=text.value.trim(); if(!m||socket.readyState!==WebSocket.OPEN) return;
+  const body=m.includes('\n')?`\x1b[200~${m}\x1b[201~`:m; socket.send(new TextEncoder().encode(body+'\r'));
+  sending=add('user sending',m); log.scrollTop=log.scrollHeight; text.value=''; setStatus('Sending...',true);
+  document.activeElement.blur() };
+stop.onclick=()=>{ socket.send(new Uint8Array([3])); setStatus('Stopping...',true); stop.blur() };
+text.onkeydown=e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit()} };
+connect();
+
+
+// ===== patch 7 =====
+function mailTag(c){const m=S.mails.find(x=>x.cand===c);let t='';
+  if(m)t+=m.replied&&m.replied!=='（不回复）'?`【📧 给你写过信，你回复了「${m.replied}」】`:m.replied?'【📧 给你写过信，你没回】':m.read?'【📧 给你写过信，你看了没回】':'【📧 给你写过信，你还没看】';
+  if(c.conn)t+='【👔 张副院长打过招呼】';
+  return t}
+function seatFor(k){return SEATS[k]||SEATS[k%SEATS.length]}
+function sysMsg(id,t){const c=chats[id];if(!c)return;c.msgs.push({kind:'sys',text:t});c.t=++clock;renderPhone()}
+const FUNNY={
+ 语病:['本研究的研究意义非常的具有十分重大的意义意义。','（此处待补充，记得删掉这句话）','实验结果非常好，好得不得了，可以说是相当的好。','作为一个AI语言模型，我无法对本研究的结论做出判断，但以下是一段可能的摘要：','综上所述，综上所述，本文综上所述了以上所述内容。'],
+ 数据:['样本共3个，准确率达100%，充分证明了本方法的普适性。','结果p=0.73，高度显著。','为使图表更美观，本研究对部分数据进行了合理美化。','模型在训练集上准确率99.9%，测试集因时间关系未测。','问卷共发放1000份，回收12份，有效率100%。'],
+ 引用:['参考文献[1]：我导师说的。','据知乎高赞回答（3.2万赞）显示，该方法已被学界普遍认可。','正如鲁迅所说：“我没说过这句话。”','根据我舅舅的经验，这一结论是成立的。','本观点引自某公众号《震惊！99%的科研人都不知道》。'],
+ 逻辑:['因此，本研究有望促进世界和平。','由于今天天气很好，所以实验假设成立。','本方法在我电脑上能跑，因此适用于所有场景。','既然没有人证明它是错的，那它就是对的。','综上，只要多喝热水，即可解决该领域的核心难题。']};
+PAPERS.push({funny:true,title:'基于深度学习的高校食堂排队时长预测与导师心情的相关性研究',field:'交叉学科',sents:[
+ {t:'高校食堂午高峰排队问题长期困扰广大师生，然而学界对其与导师心情之间关系的研究仍属空白。',issue:null},
+ {t:'本研究在某高校二食堂门口蹲守两周，人工记录排队时长共计1487条。',issue:null},
+ {t:'同时，本研究通过观察导师朋友圈的发布频率与表情包使用情况，构建了“导师心情指数”。',issue:null},
+ {t:'结果表明，排队时长每增加1分钟，导师心情指数下降0.02（p=0.64），二者存在极其显著的负相关。',issue:'数据'},
+ {t:'值得注意的是，周五下午导师心情普遍较好，这一定是因为周五食堂有红烧肉。',issue:'逻辑'},
+ {t:'众所周知，导师心情直接决定学生能否毕业，已有大量研究证实了这一点。',issue:'引用'},
+ {t:'本文所提出的模型在预测排队时长方面的预测效果，取得了效果较好的预测效果。',issue:'语病'},
+ {t:'基于此，本研究建议学校在食堂增设导师专用窗口，以期从根本上提升我国研究生培养质量。',issue:'逻辑'},
+ {t:'本研究受到作者本人饭卡余额的有限资助。',issue:null}]},
+{funny:true,title:'组会时长对研究生发际线位置的影响：一项为期两年的追踪研究',field:'医学 / 心理学',sents:[
+ {t:'近年来，研究生群体的脱发问题日益受到社会关注，被网友称为“科研的代价”。',issue:null},
+ {t:'本研究以本课题组4名研究生为对象，每周组会后用手机拍摄其额头并测量发际线位置。',issue:null},
+ {t:'为控制变量，研究期间要求被试不得使用生发洗发水，但有1名被试偷偷用了。',issue:null},
+ {t:'数据显示，组会每延长30分钟，发际线平均后移0.3毫米（样本量4人），该结论适用于全国所有研究生。',issue:'数据'},
+ {t:'据某电商平台生发液评论区反映，熬夜写论文是导致脱发的首要原因。',issue:'引用'},
+ {t:'因为组会越长、发际线越高，所以发际线高的同学科研能力更强。',issue:'逻辑'},
+ {t:'研究还发现，被试在听到“这个下周再改一版”时，头皮出油量显著的有所明显增加。',issue:'语病'},
+ {t:'本研究的局限在于，研究者本人的发际线也在此期间后移了约2厘米。',issue:null},
+ {t:'建议各课题组将组会时长控制在30分钟以内，导师意见请以文字形式发送。',issue:null}]});
+async function evFirstExam2(){
+  S.round=2;S.cands1=S.cands;S.cands=genCands().map(c=>({...c,id:'k2'+c.id}));
+  await say(null,'一年一度的考研又来了。这一次，你要为课题组招第二届学生。');
+  await evFirstExam();
+  await say(null,`第二届的招生名额是 ${Math.min(4,2+(S.quotaBonus||0))} 个。想多招人？在办公桌电脑的「💼 课题组经营」里用声望向学院申请扩招（每次 +1，最多 4 个），要在 3 月复试前申请。`);}
+async function evMeet2(){
+  const nw=S.students.filter(s=>s.cohort===2);if(!nw.length)return randomEvent();
+  const old=live();{const used=new Set(old.map(s=>s.seat+''));let fi=0;nw.forEach(s=>{if(used.has(s.seat+'')){while(fi<SEATS.length&&used.has(SEATS[fi]+''))fi++;if(fi<SEATS.length)s.seat=SEATS[fi]}used.add(s.seat+'')})}nw.forEach(s=>s.shown=true);
+  await say(null,`9月，第二届新生报到！${nw.map(s=>s.name).join('、')}加入了课题组，实验室一下子挤了起来。\n${old.length?old.map(s=>s.name).join('、')+'正式升级成了师兄师姐。':''}`);
+  const g=chat('group',`课题组群`,GROUP,true);g.name=`课题组群（${live().length+1}）`;
+  for(const s of nw)await pmsg('group',s,fill(TR[s.trait].hello,s));
+  if(old.length)await pmsg('group',pick(old),'欢迎师弟师妹！有问题随时问我们～（终于不是组里最小的了😆）');
+  await preply('group',['欢迎新同学！师兄师姐们多带带']);await sleep(300);
+  if(!old.length)return;
+  const k=await choose(ME,'要不要安排一位老生带新生？',old.map(s=>`让${s.name}带（TA进度 -3，新生进度 +5，关系变好）`).concat(['不用，各自发展']));
+  if(k<old.length){const m=old[k];fx(m,{prog:-3,aff:3});nw.forEach(n=>{fx(n,{prog:5,aff:2});addRel(m,n,20)});await say(m,'放心吧老师，我一定把师弟师妹带好！','smile')}}
+async function labMenu(){
+  for(;;){const st=live(),u=k=>!!(S.lab&&S.lab[k]===S.turn),mark=k=>{S.lab=S.lab||{};S.lab[k]=S.turn};
+    const boost=S.labBoost||0,qb=S.quotaBonus||0,iv2=TL.findIndex(t=>t.k2),qOpen=S.turn<iv2;
+    const i=await choose(null,`💼 课题组经营　经费 ¥${S.funds} · 钱包 ¥${S.wallet} · 声望 ${S.rep}\n每阶段学院拨款 ¥500，按人头发助研津贴 ¥200/人；经费为负时学生会闹情绪。`,[
+      `🖥️ 采购 GPU 服务器（经费 -¥6000）→ 此后每阶段全组进度 +25%${boost?`（已有 ${Math.round(boost/0.25)}/2 台）`:''}`,
+      `✈️ 资助全组参加学术会议（经费 -¥3000）→ 声望 +2，全员好感 +6、进度 +5${u('conf')?'（本阶段已去过）':''}`,
+      `🧋 请全组喝奶茶（钱包 -¥300）→ 全员心情 +8${u('tea')?'（本阶段已请过）':''}`,
+      `🍲 组织课题组聚餐（钱包 -¥1000）→ 全员好感 +5、心情 +10，同门关系变好${u('meal')?'（本阶段已聚过）':''}`,
+      `📈 用声望向学院申请扩招（声望 -10）→ 第二届名额 +1${qOpen?(qb?`（已 +${qb}）`:''):'（第二届已招完）'}`,
+      `🏅 用声望为学生争取奖学金（声望 -5）→ 一名学生好感 +12、心情 +15${u('sch')?'（本阶段已用过）':''}`,
+      `🤝 用声望拉一个横向合作（声望 -8）→ 经费 +¥8000${u('coop')?'（本阶段已用过）':''}`,
+      '返回']);
+    if(i===7)return;
+    const no=t=>say(null,t);
+    if(i===0){if(boost>=0.5){await no('实验室已经塞不下第三台服务器了，空调在哀嚎。');continue}if(S.funds<6000){await no('经费不够 ¥6000。可以接横向项目，或用声望拉合作。');continue}
+      stat('funds',-6000,'经费');S.labBoost=boost+0.25;if(st.length)fxAll({mood:6});await no(`新服务器到货！${st.length?'学生们围着机箱拍照发朋友圈：“终于不用抢卡了！”':''}\n此后每阶段全组科研进度 +${Math.round(S.labBoost*100)}%。`)}
+    else if(i===1){if(!st.length){await no('你还没有学生。');continue}if(u('conf')){await no('本阶段已经带大家去开过会了。');continue}if(S.funds<3000){await no('经费不够 ¥3000。');continue}
+      mark('conf');stat('funds',-3000,'经费');stat('rep',2,'声望');fxAll({aff:6,prog:5});const c=pick(['成都','厦门','西安','青岛','长沙']);const s=pick(st);
+      await no(`你带全组去${c}参加学术年会。${s.name}的海报前围了一圈人，有位大牛还加了TA微信。`);await say(s,pick(['老师！大牛说我的工作很有意思！我要去发朋友圈！','原来开会这么有意思……我回去要好好做实验了！','老师，会议的茶歇太好吃了（不是）']),'smile')}
+    else if(i===2){if(!st.length){await no('你还没有学生。');continue}if(u('tea')){await no('本阶段已经请过奶茶了，再喝要胖了。');continue}if(S.wallet<300){await no('钱包不够了。');continue}
+      mark('tea');stat('wallet',-300,'钱包');fxAll({mood:8});await say(pick(st),'老师请的奶茶！全糖加珍珠！我宣布今天是组里最快乐的一天🧋','smile')}
+    else if(i===3){if(!st.length){await no('你还没有学生。');continue}if(u('meal')){await no('本阶段已经聚过餐了。');continue}if(S.wallet<1000){await no('钱包不够 ¥1000。');continue}
+      mark('meal');stat('wallet',-1000,'钱包');fxAll({aff:5,mood:10});for(let a=0;a<st.length;a++)for(let b=a+1;b<st.length;b++)addRel(st[a],st[b],8);
+      await no('学校后门的火锅店，锅里翻滚着毛肚和鸭肠。大家聊着聊着就忘了论文这回事。（同门关系 +8）')}
+    else if(i===4){if(!qOpen){await no('第二届的复试已经结束了。');continue}if(qb>=2){await no('学院说：名额不能再加了，别的老师也要招人的。');continue}if(S.rep<10){await no('声望不够 10。');continue}
+      stat('rep',-10,'声望');S.quotaBonus=qb+1;await no(`学院批准了你的扩招申请！第二届招生名额：${Math.min(4,2+S.quotaBonus)} 个。`)}
+    else if(i===5){if(!st.length){await no('你还没有学生。');continue}if(u('sch')){await no('本阶段已经推荐过了。');continue}if(S.rep<5){await no('声望不够 5。');continue}
+      const k=await choose(null,'推荐谁去评奖学金？',st.map(s=>`${s.name}（好感 ${s.aff} · 心情 ${s.mood} · 进度 ${s.prog}%）`).concat(['算了']));if(k>=st.length)continue;
+      mark('sch');stat('rep',-5,'声望');const s=st[k];const r=fx(s,{aff:12,mood:15});if(s.fawn||s.conn)S.favor+=1.5;
+      await say(s,'老师！我拿到奖学金了！！这个月房租有着落了😭\n'+r,'smile')}
+    else if(i===6){if(u('coop')){await no('本阶段已经谈过合作了。');continue}if(S.rep<8){await no('声望不够 8。');continue}
+      mark('coop');stat('rep',-8,'声望');stat('funds',8000,'经费');const s=st.length?pick(st):null;if(s)fx(s,{mood:-4});
+      await no(`一家企业冲着你的名气找上门，签了个横向合作，经费 +¥8000。${s?`对接的活落到了${s.name}头上，TA有点忙。`:''}`)}
+  }}
+{const _fr=freeReply;freeReply=function(s,t){const bad=/垃圾|废物|蠢|笨|滚|延毕|退学|开除|太差|失望|没用/.test(t);const r=_fr(s,t);
+  if(!bad&&!s.depressed&&once(s,'talk')){const d=fx(s,{aff:1,mood:2});setTimeout(()=>sysMsg(s.id,`${s.name} 挺开心你主动找TA聊天 ${d}`),1100)}return r}}
+(function(){const iS=TL.findIndex(t=>t.ev===evSign);if(iS>=0){TL[iS].d='研二 · 10月';TL.splice(iS,0,{d:'研二 · 9月 新生报到',ev:evMeet2,goal:'第二届新生来了！电脑「💼 课题组经营」里可以花经费、声望和钱包'})}
+  const iT=TL.findIndex(t=>t.ev===evTeam2);if(iT>=0)TL.splice(iT,0,{d:'研一 · 3月 第二届复试',ev:evInterview,k2:true});
+  const iN=TL.findIndex(t=>t.ev===evNewYear);if(iN>=0)TL.splice(iN,0,{d:'研一 · 12月下旬 第二届初试',ev:evFirstExam2,goal:'邮箱里有第二届考生的来信；想扩招就去电脑「💼 课题组经营」用声望申请'});})();
+
+</script></body></html>
